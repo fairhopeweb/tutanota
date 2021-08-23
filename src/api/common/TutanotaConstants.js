@@ -360,6 +360,8 @@ export const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 25
 export const MAX_LOGO_SIZE = 1024 * 100
 export const MAX_BASE64_IMAGE_SIZE = MAX_LOGO_SIZE
 
+export const MAX_BLOB_SIZE_BYTES = 1024 * 1024 * 10
+
 export const ALLOWED_IMAGE_FORMATS = ["png", "jpg", "jpeg", "svg"]
 
 export const FeatureType = Object.freeze({

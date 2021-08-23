@@ -144,7 +144,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "69"
+	"version": "70"
 }
 
 export function createGroup(values?: $Shape<$Exact<Group>>): Group {

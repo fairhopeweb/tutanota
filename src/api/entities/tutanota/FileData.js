@@ -4,6 +4,7 @@ import {create} from "../../common/utils/EntityUtils"
 import {TypeRef} from "../../common/utils/TypeRef"
 import type {TypeModel} from "../../common/EntityTypes"
 
+import type {Blob} from "../sys/Blob"
 import type {DataBlock} from "./DataBlock"
 
 export const FileDataTypeRef: TypeRef<FileData> = new TypeRef("tutanota", "FileData")
@@ -60,6 +61,14 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"associations": {
+		"blobs": {
+			"id": 1204,
+			"type": "AGGREGATION",
+			"cardinality": "Any",
+			"final": false,
+			"refType": "Blob",
+			"dependency": "sys"
+		},
 		"blocks": {
 			"id": 10,
 			"type": "AGGREGATION",
@@ -87,5 +96,6 @@ export type FileData = {
 	size: NumberString;
 	unreferenced: boolean;
 
+	blobs: Blob[];
 	blocks: DataBlock[];
 }

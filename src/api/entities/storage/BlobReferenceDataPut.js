@@ -30,17 +30,24 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
+		"instanceElementId": {
+			"id": 107,
+			"type": "GeneratedId",
+			"cardinality": "ZeroOrOne",
+			"final": false,
+			"encrypted": false
+		},
 		"instanceListElementId": {
 			"id": 98,
 			"type": "GeneratedId",
-			"cardinality": "One",
+			"cardinality": "ZeroOrOne",
 			"final": false,
 			"encrypted": false
 		},
 		"instanceListId": {
 			"id": 97,
 			"type": "GeneratedId",
-			"cardinality": "One",
+			"cardinality": "ZeroOrOne",
 			"final": false,
 			"encrypted": false
 		}
@@ -56,7 +63,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "storage",
-	"version": "1"
+	"version": "2"
 }
 
 export function createBlobReferenceDataPut(values?: $Shape<$Exact<BlobReferenceDataPut>>): BlobReferenceDataPut {
@@ -68,8 +75,9 @@ export type BlobReferenceDataPut = {
 
 	_format: NumberString;
 	blobReferenceToken: Uint8Array;
-	instanceListElementId: Id;
-	instanceListId: Id;
+	instanceElementId: ?Id;
+	instanceListElementId: ?Id;
+	instanceListId: ?Id;
 
 	type: TypeInfo;
 }

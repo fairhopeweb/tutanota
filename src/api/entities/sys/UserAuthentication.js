@@ -47,7 +47,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "69"
+	"version": "70"
 }
 
 export function createUserAuthentication(values?: $Shape<$Exact<UserAuthentication>>): UserAuthentication {

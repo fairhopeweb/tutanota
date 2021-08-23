@@ -237,7 +237,7 @@ export class MailFacade {
 					// user added attachment
 					const fileSessionKey = aes128RandomKey()
 					const dataFile = downcast<DataFile>(providedFile)
-					return this._file.uploadFileData(dataFile, fileSessionKey).then(fileDataId => {
+					return this._file.uploadFileBlobData(dataFile, fileSessionKey).then(fileDataId => {
 						return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, dataFile, mailGroupKey)
 					})
 				} else if (providedFile._type === "FileReference") {

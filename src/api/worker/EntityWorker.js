@@ -1,17 +1,11 @@
 // @flow
 import type {HttpMethodEnum} from "../common/EntityFunctions"
-import {
-	_eraseEntity,
-	_loadEntity,
-	_loadEntityRange,
-	_loadMultipleEntities,
-	_setupEntity,
-	_updateEntity
-} from "../common/EntityFunctions"
+import {_eraseEntity, _loadEntity, _loadEntityRange, _loadMultipleEntities, _setupEntity, _updateEntity} from "../common/EntityFunctions"
 import {_service} from "./rest/ServiceRestClient"
 import {assertWorkerOrNode} from "../common/Env"
 import {locator} from "./WorkerLocator"
 import {TypeRef} from "../common/utils/TypeRef";
+import {ProgrammingError} from "../common/error/ProgrammingError"
 
 assertWorkerOrNode()
 
@@ -47,11 +41,16 @@ export function loadRange<T>(typeRef: TypeRef<T>, listId: Id, start: Id, count: 
 	return _loadEntityRange(typeRef, listId, start, count, reverse, locator.cache)
 }
 
-export function serviceRequest<T>(service: SysServiceEnum | TutanotaServiceEnum | MonitorServiceEnum | StorageServiceEnum, method: HttpMethodEnum, requestEntity: ?any, responseTypeRef: TypeRef<T>, queryParams: ?Params, sk: ?Aes128Key, extraHeaders?: Params): Promise<T> {
-	return _service(service, method, requestEntity, responseTypeRef, queryParams, sk, extraHeaders)
+export async function serviceRequest<T>(service: SysServiceEnum | TutanotaServiceEnum | MonitorServiceEnum | StorageServiceEnum, method: HttpMethodEnum, requestEntity: ?any, responseTypeRef: TypeRef<T>, queryParams: ?Params, sk: ?Aes128Key, extraHeaders?: Params): Promise<T> {
+	const ret = await _service(service, method, requestEntity, responseTypeRef, queryParams, sk, extraHeaders)
+	if (ret) {
+		return ret
+	} else {
+		throw new ProgrammingError("service was supposed to return some data")
+	}
 }
 
-export function serviceRequestVoid<T>(service: SysServiceEnum | TutanotaServiceEnum | MonitorServiceEnum | AccountingServiceEnum,
-                                      method: HttpMethodEnum, requestEntity: ?any, queryParams: ?Params, sk: ?Aes128Key, extraHeaders?: Params): Promise<void> {
-	return _service(service, method, requestEntity, null, queryParams, sk, extraHeaders)
+export async function serviceRequestVoid(service: SysServiceEnum | TutanotaServiceEnum | MonitorServiceEnum | StorageServiceEnum | AccountingServiceEnum,
+                                         method: HttpMethodEnum, requestEntity: ?any, queryParams: ?Params, sk: ?Aes128Key, extraHeaders?: Params): Promise<void> {
+	await _service(service, method, requestEntity, null, queryParams, sk, extraHeaders)
 }

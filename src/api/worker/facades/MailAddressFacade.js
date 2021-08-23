@@ -9,9 +9,10 @@ import type {LoginFacadeImpl} from "./LoginFacade"
 import {createMailAddressAvailabilityData} from "../../entities/sys/MailAddressAvailabilityData"
 import {DomainMailAddressAvailabilityReturnTypeRef} from "../../entities/sys/DomainMailAddressAvailabilityReturn"
 import {MailAddressAvailabilityReturnTypeRef} from "../../entities/sys/MailAddressAvailabilityReturn"
+import type {MailAddressAliasServiceReturn} from "../../entities/sys/MailAddressAliasServiceReturn"
 import {MailAddressAliasServiceReturnTypeRef} from "../../entities/sys/MailAddressAliasServiceReturn"
 import {SysService} from "../../entities/sys/Services"
-import type {MailAddressAliasServiceReturn} from "../../entities/sys/MailAddressAliasServiceReturn"
+import {serviceRequest, serviceRequestVoid} from "../../main/Entity"
 
 assertWorkerOrNode()
 
@@ -24,19 +25,19 @@ export class MailAddressFacade {
 	}
 
 	getAliasCounters(): Promise<MailAddressAliasServiceReturn> {
-		return _service(SysService.MailAddressAliasService, HttpMethod.GET, null, MailAddressAliasServiceReturnTypeRef)
+		return serviceRequest(SysService.MailAddressAliasService, HttpMethod.GET, null, MailAddressAliasServiceReturnTypeRef)
 	}
 
 	isMailAddressAvailable(mailAddress: string): Promise<boolean> {
 		if (this._login.isLoggedIn()) {
 			let data = createDomainMailAddressAvailabilityData()
 			data.mailAddress = mailAddress
-			return _service(SysService.DomainMailAddressAvailabilityService, HttpMethod.GET, data, DomainMailAddressAvailabilityReturnTypeRef)
+			return serviceRequest(SysService.DomainMailAddressAvailabilityService, HttpMethod.GET, data, DomainMailAddressAvailabilityReturnTypeRef)
 				.then(result => result.available)
 		} else {
 			let data = createMailAddressAvailabilityData()
 			data.mailAddress = mailAddress
-			return _service(SysService.MailAddressAvailabilityService, HttpMethod.GET, data, MailAddressAvailabilityReturnTypeRef)
+			return serviceRequest(SysService.MailAddressAvailabilityService, HttpMethod.GET, data, MailAddressAvailabilityReturnTypeRef)
 				.then(result => result.available)
 		}
 	}
@@ -45,7 +46,7 @@ export class MailAddressFacade {
 		let data = createMailAddressAliasServiceData()
 		data.group = groupId
 		data.mailAddress = alias
-		return _service(SysService.MailAddressAliasService, HttpMethod.POST, data)
+		return serviceRequestVoid(SysService.MailAddressAliasService, HttpMethod.POST, data)
 	}
 
 	setMailAliasStatus(groupId: Id, alias: string, restore: boolean): Promise<void> {
@@ -53,6 +54,6 @@ export class MailAddressFacade {
 		deleteData.mailAddress = alias
 		deleteData.restore = restore
 		deleteData.group = groupId
-		return _service(SysService.MailAddressAliasService, HttpMethod.DELETE, deleteData)
+		return serviceRequestVoid(SysService.MailAddressAliasService, HttpMethod.DELETE, deleteData)
 	}
 }

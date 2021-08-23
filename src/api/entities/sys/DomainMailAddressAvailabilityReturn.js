@@ -32,7 +32,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {},
 	"app": "sys",
-	"version": "69"
+	"version": "70"
 }
 
 export function createDomainMailAddressAvailabilityReturn(values?: $Shape<$Exact<DomainMailAddressAvailabilityReturn>>): DomainMailAddressAvailabilityReturn {

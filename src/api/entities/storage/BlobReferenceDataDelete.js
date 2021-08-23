@@ -58,7 +58,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "storage",
-	"version": "1"
+	"version": "2"
 }
 
 export function createBlobReferenceDataDelete(values?: $Shape<$Exact<BlobReferenceDataDelete>>): BlobReferenceDataDelete {
