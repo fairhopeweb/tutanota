@@ -4,10 +4,15 @@ import {decryptAndMapToInstance, encryptAndMapToLiteral, resolveServiceSessionKe
 import type {HttpMethodEnum} from "../../common/EntityFunctions"
 import {MediaType, resolveTypeReference} from "../../common/EntityFunctions"
 import {assertWorkerOrNode} from "../../common/Env"
-import {neverNull} from "../../common/utils/Utils"
+import {downcast, neverNull} from "../../common/utils/Utils"
 import {TypeRef} from "../../common/utils/TypeRef";
+import type {TypeModel} from "../../common/EntityTypes"
 
 assertWorkerOrNode()
+
+function hasEncryptedValues(requestTypeModel: TypeModel) : boolean {
+	return Object.values(requestTypeModel.values).some(v => downcast(v)?.encrypted)
+}
 
 export async function _service<T>(service: SysServiceEnum | TutanotaServiceEnum | MonitorServiceEnum | AccountingServiceEnum | StorageServiceEnum,
                                   method: HttpMethodEnum, requestEntity: ?any, responseTypeRef: ?TypeRef<T>, queryParameter: ?Params, sk: ?Aes128Key, extraHeaders?: Params): Promise<?T> {
@@ -20,7 +25,7 @@ export async function _service<T>(service: SysServiceEnum | TutanotaServiceEnum 
 	let encryptedEntity
 	if (requestEntity != null) {
 		let requestTypeModel = await resolveTypeReference(requestEntity._type)
-		if (requestTypeModel.encrypted && sk == null) {
+		if (requestTypeModel.encrypted && hasEncryptedValues(requestTypeModel) && sk == null) {
 			throw new Error("must provide a session key for an encrypted data transfer type!: " + service)
 		} else {
 			encryptedEntity = await encryptAndMapToLiteral(requestTypeModel, requestEntity, sk)

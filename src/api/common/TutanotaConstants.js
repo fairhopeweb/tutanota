@@ -24,8 +24,10 @@ export type $Reversed<T> = $Call<typeof reverse, T>
 
 export const MAX_NBR_MOVE_DELETE_MAIL_SERVICE = 50
 
+export const MAX_BLOB_SIZE_BYTES = 1024 * 1024 * 10
 export const REQUEST_SIZE_LIMIT_DEFAULT = 1024 * 1024
 export const REQUEST_SIZE_LIMIT_MAP: Map<string, number> = new Map([
+	["/rest/storage/blobservice", MAX_BLOB_SIZE_BYTES],
 	["/rest/tutanota/filedataservice", 1024 * 1024 * 25],
 	["/rest/tutanota/draftservice", 1024 * 1024], // should be large enough
 ])
@@ -359,8 +361,6 @@ export const SecondFactorTypeNames = ["U2F", "TOTP"]
 export const MAX_ATTACHMENT_SIZE = 1024 * 1024 * 25
 export const MAX_LOGO_SIZE = 1024 * 100
 export const MAX_BASE64_IMAGE_SIZE = MAX_LOGO_SIZE
-
-export const MAX_BLOB_SIZE_BYTES = 1024 * 1024 * 10
 
 export const ALLOWED_IMAGE_FORMATS = ["png", "jpg", "jpeg", "svg"]
 

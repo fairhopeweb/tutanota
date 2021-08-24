@@ -39,7 +39,7 @@ import {LoginFacadeImpl} from "./LoginFacade"
 import {TutanotaService} from "../../entities/tutanota/Services"
 import {FileBlobServiceGetReturnTypeRef} from "../../entities/tutanota/FileBlobServiceGetReturn"
 import {promiseMap} from "../../common/utils/PromiseUtils"
-import {concat, splitUint8ArrayInChunks} from "../../common/utils/ArrayUtils"
+import {arrayEquals, concat, isEmpty, splitUint8ArrayInChunks} from "../../common/utils/ArrayUtils"
 import {FileBlobServicePostReturnTypeRef} from "../../entities/tutanota/FileBlobServicePostReturn"
 import {locator} from "../WorkerLocator"
 import {createBlobReferenceDataPut} from "../../entities/storage/BlobReferenceDataPut"
@@ -65,9 +65,9 @@ export class FileFacade {
 	async downloadFileContent(file: TutanotaFile): Promise<DataFile> {
 		const fileDataId = assertNotNull(file.data, "trying to download a TutanotaFile that has no data")
 		const fileData = await locator.cachingEntityClient.load(FileDataTypeRef, fileDataId)
-		if (fileData.blocks) {
+		if (!isEmpty(fileData.blocks)) {
 			return this.downloadFileBlockContent(file)
-		} else if (fileData.blobs) {
+		} else if (!isEmpty(fileData.blobs)) {
 			return this.downloadFileBlobContent(file)
 		} else {
 			throw new ProgrammingError("FileData without blobs or blocks")
@@ -99,8 +99,7 @@ export class FileFacade {
 		requestData.base64 = false
 
 		const sessionKey = await resolveSessionKey(FileTypeModel, file)
-		const entityToSend = await encryptAndMapToLiteral(FileDataDataGetTypModel, requestData, null)
-		const serviceReturn = await serviceRequest(TutanotaService.FileBlobService, HttpMethod.GET, entityToSend, FileBlobServiceGetReturnTypeRef)
+		const serviceReturn = await serviceRequest(TutanotaService.FileBlobService, HttpMethod.GET, requestData, FileBlobServiceGetReturnTypeRef)
 
 		const accessInfos = serviceReturn.accessInfos
 		const promises: Array<Promise<Array<{blobId: BlobId, data: Uint8Array}>>> = accessInfos.map(info =>
@@ -114,7 +113,7 @@ export class FileFacade {
 		const blobs: Array<{blobId: BlobId, data: Uint8Array}> = promisesResolved.flat()
 
 		const orderedBlobs: Array<Uint8Array> = serviceReturn.blobs.map(blobId =>
-			blobs.find(blob => blob.blobId === blobId)?.data ?? new Uint8Array(0)
+			blobs.find(blob => arrayEquals(blob.blobId.blobId, blobId.blobId))?.data ?? new Uint8Array(0)
 		)
 		const data = concat(...orderedBlobs)
 		return convertToDataFile(file, aes128Decrypt(neverNull(sessionKey), data))
