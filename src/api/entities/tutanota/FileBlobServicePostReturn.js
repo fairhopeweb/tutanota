@@ -9,15 +9,15 @@ import type {BlobAccessInfo} from "../sys/BlobAccessInfo"
 export const FileBlobServicePostReturnTypeRef: TypeRef<FileBlobServicePostReturn> = new TypeRef("tutanota", "FileBlobServicePostReturn")
 export const _TypeModel: TypeModel = {
 	"name": "FileBlobServicePostReturn",
-	"since": 47,
+	"since": 48,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1199,
-	"rootId": "CHR1dGFub3RhAASv",
+	"id": 1208,
+	"rootId": "CHR1dGFub3RhAAS4",
 	"versioned": false,
 	"encrypted": true,
 	"values": {
 		"_format": {
-			"id": 1200,
+			"id": 1209,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,
@@ -26,7 +26,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {
 		"accessInfo": {
-			"id": 1202,
+			"id": 1211,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
@@ -34,7 +34,7 @@ export const _TypeModel: TypeModel = {
 			"dependency": "sys"
 		},
 		"fileData": {
-			"id": 1201,
+			"id": 1210,
 			"type": "ELEMENT_ASSOCIATION",
 			"cardinality": "One",
 			"final": false,
@@ -42,7 +42,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "47"
+	"version": "48"
 }
 
 export function createFileBlobServicePostReturn(values?: $Shape<$Exact<FileBlobServicePostReturn>>): FileBlobServicePostReturn {

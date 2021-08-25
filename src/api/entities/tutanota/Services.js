@@ -8,7 +8,6 @@ export const TutanotaService = Object.freeze({
 	PasswordRetrievalService: "passwordretrievalservice",
 	PasswordChannelResource: "passwordchannelresource",
 	FileDataService: "filedataservice",
-	FileBlobService: "fileblobservice",
 	MoveMailService: "movemailservice",
 	MailFolderService: "mailfolderservice",
 	EncryptTutanotaPropertiesService: "encrypttutanotapropertiesservice",
