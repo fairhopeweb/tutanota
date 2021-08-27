@@ -5,3 +5,9 @@ export const StorageService = Object.freeze({
 	BlobAccessTokenService: "blobaccesstokenservice",
 	BlobReferenceService: "blobreferenceservice"
 })
+
+export type StorageServiceType = $Values<typeof StorageService>
+
+export function getStorageRestPath(service: StorageServiceType): string {
+	return `/rest/storage/${service}`
+}

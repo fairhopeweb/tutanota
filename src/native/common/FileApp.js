@@ -4,12 +4,15 @@ import {Request} from "../../api/common/WorkerProtocol"
 import {uint8ArrayToBase64} from "../../api/common/utils/Encoding"
 import type {MailBundle} from "../../mail/export/Bundler";
 import {promiseMap} from "../../api/common/utils/PromiseUtils"
+import type {BlobAccessInfo} from "../../api/entities/sys/BlobAccessInfo"
+import type {BlobId} from "../../api/entities/sys/BlobId"
 
 
 export const fileApp = {
 	openFileChooser,
 	openFolderChooser,
 	download,
+	downloadBlobs,
 	upload,
 	open,
 	deleteFile,
@@ -97,6 +100,10 @@ export function putFileIntoDownloadsFolder(localFileUri: string): Promise<string
 	return nativeApp.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 }
 
+export function downloadBlobs(filename: string, headers: Object, blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}>): Promise<NativeDownloadResult> {
+	return nativeApp.invokeNative(new Request('downloadBlobs', [filename, headers, blobs]))
+}
+
 function saveBlob(data: DataFile): Promise<void> {
 	return nativeApp.invokeNative(new Request("saveBlob", [data.name, uint8ArrayToBase64(data.data)]))
 }
@@ -109,11 +116,19 @@ function upload(fileUrl: string, targetUrl: string,
 	return nativeApp.invokeNative(new Request("upload", [fileUrl, targetUrl, headers]))
 }
 
+export type NativeDownloadResult = {
+	statusCode: number,
+	encryptedFileUri?: string,
+	errorId?: string,
+	precondition?: string,
+	suspensionTime?: ?string
+}
+
 /**
  * Downloads the binary data of a file from tutadb and stores it in the internal memory.
  * @returns Resolves to the URI of the downloaded file
  */
-function download(sourceUrl: string, filename: string, headers: Object): Promise<{statusCode: number, encryptedFileUri: ?string, errorId: ?string, precondition: ?string, suspensionTime: ?string}> {
+function download(sourceUrl: string, filename: string, headers: Object): Promise<NativeDownloadResult> {
 	return nativeApp.invokeNative(new Request("download", [sourceUrl, filename, headers]))
 }
 

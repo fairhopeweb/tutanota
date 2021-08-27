@@ -26,3 +26,9 @@ export const TutanotaService = Object.freeze({
 	EntropyService: "entropyservice",
 	TemplateGroupService: "templategroupservice"
 })
+
+export type TutanotaServiceType = $Values<typeof TutanotaService>
+
+export function getRestPath(service: TutanotaServiceType): string {
+	return `/rest/tutanota/${service}`
+}

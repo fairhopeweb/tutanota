@@ -1,4 +1,5 @@
 // @flow
+import type {FileDataDataGet} from "../../entities/tutanota/FileDataDataGet"
 import {_TypeModel as FileDataDataGetTypModel, createFileDataDataGet} from "../../entities/tutanota/FileDataDataGet"
 import {addParamsToUrl, isSuspensionResponse, RestClient} from "../rest/RestClient"
 import {encryptAndMapToLiteral, encryptBytes, resolveSessionKey} from "../crypto/CryptoFacade"
@@ -17,6 +18,7 @@ import {HttpMethod, MediaType, resolveTypeReference} from "../../common/EntityFu
 import {assertWorkerOrNode, getHttpOrigin, Mode} from "../../common/Env"
 import {aesDecryptFile, aesEncryptFile} from "../../../native/worker/AesApp"
 import {handleRestError} from "../../common/error/RestError"
+import type {NativeDownloadResult} from "../../../native/common/FileApp"
 import {fileApp} from "../../../native/common/FileApp"
 import {convertToDataFile} from "../../common/DataFile"
 import type {SuspensionHandler} from "../SuspensionHandler"
@@ -37,6 +39,7 @@ import {TypeRef} from "../../common/utils/TypeRef"
 import type {TypeModel} from "../../common/EntityTypes"
 import {LoginFacadeImpl} from "./LoginFacade"
 import {TutanotaService} from "../../entities/tutanota/Services"
+import type {FileBlobServiceGetReturn} from "../../entities/tutanota/FileBlobServiceGetReturn"
 import {FileBlobServiceGetReturnTypeRef} from "../../entities/tutanota/FileBlobServiceGetReturn"
 import {promiseMap} from "../../common/utils/PromiseUtils"
 import {arrayEquals, concat, isEmpty, splitUint8ArrayInChunks} from "../../common/utils/ArrayUtils"
@@ -119,58 +122,108 @@ export class FileFacade {
 		return convertToDataFile(file, aes128Decrypt(neverNull(sessionKey), data))
 	}
 
-	downloadFileContentNative(file: TutanotaFile): Promise<FileReference> {
+	async downloadFileContentNative(file: TutanotaFile): Promise<FileReference> {
+		const fileDataId = assertNotNull(file.data, "trying to download a TutanotaFile that has no data")
+		const fileData = await locator.cachingEntityClient.load(FileDataTypeRef, fileDataId)
+		if (!isEmpty(fileData.blocks)) {
+			return this.downloadFileNative(file, file => this.fileBlockDownloader(file));
+		} else if (!isEmpty(fileData.blobs)) {
+			return this.downloadFileNative(file, file => this.fileBlobDownloader(file));
+		} else {
+			throw new ProgrammingError("FileData without blobs or blocks")
+		}
+	}
+
+	async downloadFileNative(file: TutanotaFile, fileDownloader: (TutanotaFile) => Promise<NativeDownloadResult>): Promise<FileReference> {
 		if (![Mode.App, Mode.Desktop].includes(env.mode)) {
 			return Promise.reject("Environment is not app or Desktop!")
 		}
 
 		if (this._suspensionHandler.isSuspended()) {
-			return this._suspensionHandler.deferRequest(() => this.downloadFileContentNative(file))
+			return this._suspensionHandler.deferRequest(() => this.downloadFileNative(file, fileDownloader))
 		}
 
+		const sessionKey = await resolveSessionKey(FileTypeModel, file)
+		const {
+			statusCode,
+			encryptedFileUri,
+			errorId,
+			precondition,
+			suspensionTime
+		} = await fileDownloader(file)
+
+
+		try {
+			if (statusCode === 200 && encryptedFileUri != null) {
+				const decryptedFileUrl = await aesDecryptFile(neverNull(sessionKey), encryptedFileUri)
+
+				const mimeType = file.mimeType == null ? MediaType.Binary : file.mimeType
+				return {
+					_type: 'FileReference',
+					name: file.name,
+					mimeType,
+					location: decryptedFileUrl,
+					size: filterInt(file.size)
+				}
+
+			} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
+				this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
+				return this._suspensionHandler.deferRequest(() => fileDownloader(file))
+			} else {
+				throw handleRestError(statusCode, ` | GET failed to natively download attachment`, errorId, precondition)
+			}
+		} finally {
+			if (encryptedFileUri != null) {
+				try {
+					await fileApp.deleteFile(encryptedFileUri)
+				} catch {
+					console.log("Failed to delete encrypted file", encryptedFileUri)
+				}
+			}
+		}
+	}
+
+	getFileRequestData(file: TutanotaFile): FileDataDataGet {
 		let requestData = createFileDataDataGet()
 		requestData.file = file._id
 		requestData.base64 = false
+		return requestData
+	}
 
-		return resolveSessionKey(FileTypeModel, file).then(sessionKey => {
-			return encryptAndMapToLiteral(FileDataDataGetTypModel, requestData, null).then(entityToSend => {
-				let headers = this._login.createAuthHeaders()
-				headers['v'] = FileDataDataGetTypModel.version
-				let body = JSON.stringify(entityToSend)
-				let queryParams = {'_body': body}
-				let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
+	async fileBlockDownloader(file: TutanotaFile): Promise<NativeDownloadResult> {
+		const entityToSend = await encryptAndMapToLiteral(FileDataDataGetTypModel, this.getFileRequestData(file), null)
 
-				return fileApp.download(url.toString(), file.name, headers).then(({
-					                                                                  statusCode,
-					                                                                  encryptedFileUri,
-					                                                                  errorId,
-					                                                                  precondition,
-					                                                                  suspensionTime
-				                                                                  }) => {
-					let response;
-					if (statusCode === 200 && encryptedFileUri != null) {
-						response = aesDecryptFile(neverNull(sessionKey), encryptedFileUri).then(decryptedFileUrl => {
-							const mimeType = file.mimeType == null ? MediaType.Binary : file.mimeType
-							return {
-								_type: 'FileReference',
-								name: file.name,
-								mimeType,
-								location: decryptedFileUrl,
-								size: filterInt(file.size)
-							}
-						})
-					} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
-						this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
-						response = this._suspensionHandler.deferRequest(() => this.downloadFileContentNative(file))
-					} else {
-						response = Promise.reject(handleRestError(statusCode, ` | GET ${url.toString()} failed to natively download attachment`, errorId, precondition))
-					}
+		let headers = this._login.createAuthHeaders()
+		headers['v'] = FileDataDataGetTypModel.version
+		let body = JSON.stringify(entityToSend)
+		let queryParams = {'_body': body}
+		let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
 
-					return response.finally(() => encryptedFileUri != null && fileApp.deleteFile(encryptedFileUri)
-					                                                                 .catch(() => console.log("Failed to delete encrypted file", encryptedFileUri)))
-				})
-			})
-		})
+		return fileApp.download(url.toString(), file.name, headers)
+	}
+
+
+	async fileBlobDownloader(file: TutanotaFile): Promise<NativeDownloadResult> {
+		const serviceReturn: FileBlobServiceGetReturn = await serviceRequest(
+			TutanotaService.FileBlobService,
+			HttpMethod.GET,
+			this.getFileRequestData(file),
+			FileBlobServiceGetReturnTypeRef
+		)
+
+		const accessInfos = serviceReturn.accessInfos
+		const orderedBlobInfos: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}> = serviceReturn.blobs.map(blobId => {
+				const accessInfo = assertNotNull(
+					accessInfos.find(info => info.blobs.find(b => arrayEquals(b.blobId, blobId.blobId))),
+					"Missing accessInfo for blob"
+				)
+				return {blobId, accessInfo}
+			}
+		)
+
+		let headers = this._login.createAuthHeaders()
+		headers['v'] = FileDataDataGetTypModel.version
+		return fileApp.downloadBlobs(file.name, headers, orderedBlobInfos)
 	}
 
 	uploadFileData(dataFile: DataFile, sessionKey: Aes128Key): Promise<Id> {
@@ -239,18 +292,23 @@ export class FileFacade {
 						let fileDataId = fileDataPostReturn.fileData
 						let headers = this._login.createAuthHeaders()
 						headers['v'] = FileDataDataReturnTypeModel.version
-						let url = addParamsToUrl(new URL(getHttpOrigin() + "/rest/tutanota/filedataservice"), {fileDataId})
-						return fileApp.upload(encryptedFileInfo.uri, url.toString(), headers)
-						              .then(({statusCode, uri, errorId, precondition, suspensionTime}) => {
-							              if (statusCode === 200) {
-								              return fileDataId;
-							              } else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
-								              this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
-								              return this._suspensionHandler.deferRequest(() => this.uploadFileDataNative(fileReference, sessionKey))
-							              } else {
-								              throw handleRestError(statusCode, ` | PUT ${url.toString()} failed to natively upload attachment`, errorId, precondition)
-							              }
-						              })
+						let url = addParamsToUrl(new URL(REST_PATH, getHttpOrigin()), {fileDataId})
+						return fileApp.upload(encryptedFileInfo.uri, url.toString(), headers).then(({
+							                                                                            statusCode,
+							                                                                            uri,
+							                                                                            errorId,
+							                                                                            precondition,
+							                                                                            suspensionTime
+						                                                                            }) => {
+							if (statusCode === 200) {
+								return fileDataId;
+							} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
+								this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
+								return this._suspensionHandler.deferRequest(() => this.uploadFileDataNative(fileReference, sessionKey))
+							} else {
+								throw handleRestError(statusCode, ` | PUT ${url.toString()} failed to natively upload attachment`, errorId, precondition)
+							}
+						})
 					})
 			})
 	}

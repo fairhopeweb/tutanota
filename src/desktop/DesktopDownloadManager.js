@@ -12,6 +12,13 @@ import type {DesktopUtils} from "./DesktopUtils"
 import {promises as fs} from "fs"
 import type {DateProvider} from "../calendar/date/CalendarUtils"
 import {CancelledError} from "../api/common/error/CancelledError"
+import type {BlobAccessInfo} from "../api/entities/sys/BlobAccessInfo"
+import type {BlobId} from "../api/entities/sys/BlobId"
+import type {NativeDownloadResult} from "../native/common/FileApp"
+import {getStorageRestPath, StorageService} from "../api/entities/storage/Services"
+import {addParamsToUrl} from "../api/worker/rest/RestClient"
+import {_TypeModel as BlobDataGetTypeModel, createBlobDataGet} from "../api/entities/storage/BlobDataGet"
+import {encryptAndMapToLiteral} from "../api/worker/crypto/InstanceMapper"
 
 const TAG = "[DownloadManager]"
 
@@ -55,7 +62,64 @@ export class DesktopDownloadManager {
 		       .on("spellcheck-dictionary-download-failure", (ev, lcode) => log.debug(TAG, "spellcheck-dictionary-download-failure", lcode))
 	}
 
-	async downloadNative(sourceUrl: string, fileName: string, headers: {|v: string, accessToken: string|}): Promise<{statusCode: string, statusMessage: string, encryptedFileUri: string}> {
+	async downloadBlobNative(fileName: string, headers: {|v: string, accessToken: string|}, blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}>): Promise<NativeDownloadResult> {
+		return new Promise(async (resolve, reject) => {
+			const downloadDirectory = await this.getTutanotaTempDirectory("download")
+			const encryptedFileUri = path.join(downloadDirectory, fileName)
+			const fileStream = this._fs.createWriteStream(encryptedFileUri)
+			                       .on('close', () => resolve({
+				                       statusCode: 200,
+				                       encryptedFileUri
+			                       }))
+
+			let cleanup = e => {
+				cleanup = noOp
+				fileStream.removeAllListeners('close')
+				          .on('close', () => { // file descriptor was released
+					          fileStream.removeAllListeners('close')
+					          // remove file if it was already created
+					          this._fs.promises.unlink(encryptedFileUri)
+					              .catch(noOp)
+					              .then(() => reject(e))
+				          })
+				          .end() // {end: true} doesn't work when response errors
+			}
+
+			// It is important that we download sequentially because we don't want simultaneous downloads AND the order is important,
+			// since we are writing one blob after the other in the file stream
+
+			// TODO: handle suspension while getting multiple blobs
+			for (const {blobId, accessInfo: {servers, storageAccessToken, archiveId}} of blobs) {
+
+				const getData = createBlobDataGet({archiveId, blobId})
+				const literalGetData = await encryptAndMapToLiteral(BlobDataGetTypeModel, getData, null)
+				const body = JSON.stringify(literalGetData)
+
+				const sourceUrl = addParamsToUrl(new URL(getStorageRestPath(StorageService.BlobService), servers[0].url), {
+					"_body": body
+				})
+				const storageHeader = Object.assign({
+					storageAccessToken,
+				}, (headers: Params))
+
+				this._net.request(sourceUrl.toString(), {method: "GET", timeout: 20000, headers: storageHeader})
+				    .on('response', response => {
+					    response.on('error', cleanup)
+					    if (response.statusCode !== 200) {
+						    // causes 'error' event
+						    response.destroy(response.statusCode)
+						    return
+					    }
+					    response.pipe(fileStream, {end: false}) // do not close fileStream when done piping
+				    })
+				    .on('error', cleanup)
+				    .end()
+			}
+			fileStream.close()
+		})
+	}
+
+	async downloadNative(sourceUrl: string, fileName: string, headers: {|v: string, accessToken: string|}): Promise<NativeDownloadResult> {
 		return new Promise(async (resolve, reject) => {
 			const downloadDirectory = await this.getTutanotaTempDirectory("download")
 			const encryptedFileUri = path.join(downloadDirectory, fileName)

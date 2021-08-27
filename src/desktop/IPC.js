@@ -4,7 +4,7 @@ import {lang} from "../misc/LanguageViewModel"
 import type {WindowManager} from "./DesktopWindowManager.js"
 import {defer, mapNullable, objToError} from '../api/common/utils/Utils.js'
 import type {DeferredObject} from "../api/common/utils/Utils"
-import {downcast, neverNull, noOp} from "../api/common/utils/Utils"
+import {downcast, noOp} from "../api/common/utils/Utils"
 import {errorToObj} from "../api/common/WorkerProtocol"
 import type {DesktopConfig} from "./config/DesktopConfig"
 import type {DesktopSseClient} from './sse/DesktopSseClient.js'
@@ -26,6 +26,8 @@ import {DesktopAlarmScheduler} from "./sse/DesktopAlarmScheduler"
 import {ProgrammingError} from "../api/common/error/ProgrammingError"
 import {ThemeManager} from "./ThemeManager"
 import type {ThemeId} from "../gui/theme"
+import type {BlobAccessInfo} from "../api/entities/sys/BlobAccessInfo"
+import type {BlobId} from "../api/entities/sys/BlobId"
 
 /**
  * node-side endpoint for communication between the renderer threads and the node thread
@@ -195,6 +197,12 @@ export class IPC {
 			case 'download':
 				// sourceUrl, filename, headers
 				return this._dl.downloadNative(...args.slice(0, 3))
+			case 'downloadBlobs': {
+				const filename: string = downcast(args[0])
+				const headers: {|v: string, accessToken: string|} = downcast(args[1])
+				const blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}> = downcast(args[2])
+				return this._dl.downloadBlobNative(filename, headers, blobs)
+			}
 			case 'saveBlob':
 				// args: [data.name, uint8ArrayToBase64(data.data)]
 				const filename: string = downcast(args[0])
