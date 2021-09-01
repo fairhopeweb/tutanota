@@ -774,7 +774,7 @@ export class SendMailModel {
 		}
 
 		// The next check depends on contacts being available
-		await this._waitForResolvedRecipients()
+		await this.waitForResolvedRecipients()
 
 		// No password in external confidential mail is an error
 		if (this.isConfidentialExternal()
@@ -976,7 +976,7 @@ export class SendMailModel {
 	/**
 	 * Makes sure the recipient type and contact are resolved.
 	 */
-	_waitForResolvedRecipients(): Promise<RecipientInfo[]> {
+	waitForResolvedRecipients(): Promise<RecipientInfo[]> {
 		return Promise.all(this.allRecipients().map(recipientInfo => {
 			return resolveRecipientInfo(this._worker, recipientInfo).then(recipientInfo => {
 				if (recipientInfo.resolveContactPromise) {
