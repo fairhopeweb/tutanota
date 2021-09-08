@@ -68,9 +68,9 @@ export class DesktopDownloadManager {
 			const encryptedFileUri = path.join(downloadDirectory, fileName)
 			const fileStream = this._fs.createWriteStream(encryptedFileUri)
 			                       .on('close', () => resolve({
-				                       statusCode: 200,
-				                       encryptedFileUri
-			                       }))
+					                       statusCode: 200,
+					                       encryptedFileUri
+				                       }))
 
 			let cleanup = e => {
 				cleanup = noOp
@@ -102,18 +102,25 @@ export class DesktopDownloadManager {
 					storageAccessToken,
 				}, (headers: Params))
 
-				this._net.request(sourceUrl.toString(), {method: "GET", timeout: 20000, headers: storageHeader})
-				    .on('response', response => {
-					    response.on('error', cleanup)
-					    if (response.statusCode !== 200) {
-						    // causes 'error' event
-						    response.destroy(response.statusCode)
-						    return
-					    }
-					    response.pipe(fileStream, {end: false}) // do not close fileStream when done piping
-				    })
-				    .on('error', cleanup)
-				    .end()
+				await new Promise((resolve, reject) => {
+					this._net.request(sourceUrl.toString(), {method: "GET", timeout: 20000, headers: storageHeader})
+					    .on('response', response => {
+						    response.on('error', cleanup)
+						    if (response.statusCode !== 200) {
+							    // causes 'error' event
+							    response.destroy(response.statusCode)
+							    reject()
+							    return
+						    }
+						    response.on('end', resolve) // resolve after full body received
+						    response.pipe(fileStream, {end: false}) // do not close fileStream when done piping
+					    })
+					    .on('error', () => {
+						    cleanup()
+						    reject()
+					    })
+					    .end()
+				})
 			}
 			fileStream.close()
 		})

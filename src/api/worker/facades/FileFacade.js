@@ -1,6 +1,6 @@
 // @flow
 import type {FileDataDataGet} from "../../entities/tutanota/FileDataDataGet"
-import {_TypeModel as FileDataDataGetTypModel, createFileDataDataGet} from "../../entities/tutanota/FileDataDataGet"
+import {_TypeModel as FileDataDataGetTypeModel, createFileDataDataGet} from "../../entities/tutanota/FileDataDataGet"
 import {addParamsToUrl, isSuspensionResponse, RestClient} from "../rest/RestClient"
 import {encryptAndMapToLiteral, encryptBytes, resolveSessionKey} from "../crypto/CryptoFacade"
 import {aes128Decrypt} from "../crypto/Aes"
@@ -83,9 +83,9 @@ export class FileFacade {
 		requestData.base64 = false
 
 		return resolveSessionKey(FileTypeModel, file).then(sessionKey => {
-			return encryptAndMapToLiteral(FileDataDataGetTypModel, requestData, null).then(entityToSend => {
+			return encryptAndMapToLiteral(FileDataDataGetTypeModel, requestData, null).then(entityToSend => {
 				let headers = this._login.createAuthHeaders()
-				headers['v'] = FileDataDataGetTypModel.version
+				headers['v'] = FileDataDataGetTypeModel.version
 				let body = JSON.stringify(entityToSend)
 				return this._restClient.request(REST_PATH, HttpMethod.GET, {}, headers, body, MediaType.Binary)
 				           .then(data => {
@@ -191,10 +191,10 @@ export class FileFacade {
 	}
 
 	async fileBlockDownloader(file: TutanotaFile): Promise<NativeDownloadResult> {
-		const entityToSend = await encryptAndMapToLiteral(FileDataDataGetTypModel, this.getFileRequestData(file), null)
+		const entityToSend = await encryptAndMapToLiteral(FileDataDataGetTypeModel, this.getFileRequestData(file), null)
 
 		let headers = this._login.createAuthHeaders()
-		headers['v'] = FileDataDataGetTypModel.version
+		headers['v'] = BlobDataGetTypeModel.version
 		let body = JSON.stringify(entityToSend)
 		let queryParams = {'_body': body}
 		let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
@@ -222,7 +222,7 @@ export class FileFacade {
 		)
 
 		let headers = this._login.createAuthHeaders()
-		headers['v'] = FileDataDataGetTypModel.version
+		headers['v'] = BlobDataGetTypeModel.version
 		return fileApp.downloadBlobs(file.name, headers, orderedBlobInfos)
 	}
 
@@ -278,39 +278,39 @@ export class FileFacade {
 	/**
 	 * Does not cleanup uploaded files. This is a responsibility of the caller
 	 */
-	uploadFileDataNative(fileReference: FileReference, sessionKey: Aes128Key): Promise<Id> {
+	async uploadFileDataNative(fileReference: FileReference, sessionKey: Aes128Key): Promise<Id> {
 		if (this._suspensionHandler.isSuspended()) {
 			return this._suspensionHandler.deferRequest(() => this.uploadFileDataNative(fileReference, sessionKey))
 		}
-		return aesEncryptFile(sessionKey, fileReference.location, random.generateRandomData(16))
-			.then(encryptedFileInfo => {
-				let fileData = createFileDataDataPost()
-				fileData.size = encryptedFileInfo.unencSize.toString()
-				fileData.group = this._login.getGroupId(GroupType.Mail) // currently only used for attachments
-				return serviceRequest(TutanotaService.FileDataService, HttpMethod.POST, fileData, FileDataReturnPostTypeRef, null, sessionKey)
-					.then(fileDataPostReturn => {
-						let fileDataId = fileDataPostReturn.fileData
-						let headers = this._login.createAuthHeaders()
-						headers['v'] = FileDataDataReturnTypeModel.version
-						let url = addParamsToUrl(new URL(REST_PATH, getHttpOrigin()), {fileDataId})
-						return fileApp.upload(encryptedFileInfo.uri, url.toString(), headers).then(({
-							                                                                            statusCode,
-							                                                                            uri,
-							                                                                            errorId,
-							                                                                            precondition,
-							                                                                            suspensionTime
-						                                                                            }) => {
-							if (statusCode === 200) {
-								return fileDataId;
-							} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
-								this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
-								return this._suspensionHandler.deferRequest(() => this.uploadFileDataNative(fileReference, sessionKey))
-							} else {
-								throw handleRestError(statusCode, ` | PUT ${url.toString()} failed to natively upload attachment`, errorId, precondition)
-							}
-						})
-					})
-			})
+		const encryptedFileInfo = await aesEncryptFile(sessionKey, fileReference.location, random.generateRandomData(16))
+		const fileData = createFileDataDataPost()
+		fileData.size = encryptedFileInfo.unencSize.toString()
+		fileData.group = this._login.getGroupId(GroupType.Mail)
+
+
+		const fileDataPostReturn = await serviceRequest(TutanotaService.FileDataService, HttpMethod.POST, fileData, FileDataReturnPostTypeRef, null, sessionKey)
+		const fileDataId = fileDataPostReturn.fileData
+
+		const headers = this._login.createAuthHeaders()
+		headers['v'] = FileDataDataReturnTypeModel.version
+
+		const url = addParamsToUrl(new URL(REST_PATH, getHttpOrigin()), {fileDataId})
+		const {
+			statusCode,
+			uri,
+			errorId,
+			precondition,
+			suspensionTime
+		} = await fileApp.upload(encryptedFileInfo.uri, url.toString(), headers)
+
+		if (statusCode === 200) {
+			return fileDataId;
+		} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
+			this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
+			return this._suspensionHandler.deferRequest(() => this.uploadFileDataNative(fileReference, sessionKey))
+		} else {
+			throw handleRestError(statusCode, ` | PUT ${url.toString()} failed to natively upload attachment`, errorId, precondition)
+		}
 	}
 
 	/**
