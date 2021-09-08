@@ -181,7 +181,9 @@ export class IPC {
 				])
 				return {isMailtoHandler, isAutoLaunchEnabled, isIntegrated, isUpdateAvailable}
 			case 'openFileChooser':
-				if (args[1]) { // open folder dialog
+				const boundingRect = args[0]
+				const openFolderDialog = args[1]
+				if (openFolderDialog) {
 					return this._electron.dialog.showOpenDialog(null, {properties: ['openDirectory']}).then(({filePaths}) => filePaths)
 				} else { // open file
 					return Promise.resolve([])

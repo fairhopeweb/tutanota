@@ -61,19 +61,18 @@ export class FileController {
 	 */
 	downloadAll(tutanotaFiles: Array<TutanotaFile>): Promise<void> {
 		const showErr = (msg, name) => Dialog.error(() => lang.get(msg) + " " + name).then(() => null)
-		let downloadContent, concurrency, save
+		let downloadContent, save
+		const concurrency = {concurrency: 1}
+
 		if (isAndroidApp()) {
 			downloadContent = f => worker.fileFacade.downloadFileContentNative(f)
-			concurrency = {concurrency: 1}
 			save = p => p.then(files => files.forEach(file =>
 				import("../native/common/FileApp").then((fileApp) => fileApp.putFileIntoDownloadsFolder(file.location))))
 		} else if (isApp()) {
 			downloadContent = f => worker.fileFacade.downloadFileContentNative(f)
-			concurrency = {concurrency: 1}
 			save = p => p.then(files => files.forEach(file => this.openFileReference(file).finally(() => this._deleteFile(file.location))))
 		} else {
 			downloadContent = f => worker.fileFacade.downloadFileContent(f)
-			concurrency = {concurrency: 1}
 			save = p => p.then(files => this.zipDataFiles(files, `${sortableTimestamp()}-attachments.zip`).then(zip => this.openDataFile(zip)))
 		}
 
