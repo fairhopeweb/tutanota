@@ -26,8 +26,6 @@ export class CalendarEventPopup implements ModalComponent {
 	_onEditEvent: () => mixed
 	_shortcuts: Shortcut[]
 	_sanitizedDescription: string
-	_headerDom: ?HTMLElement = null
-	_popupDom: ?HTMLElement = null
 
 	view: (Vnode<mixed>) => Children
 
@@ -83,7 +81,7 @@ export class CalendarEventPopup implements ModalComponent {
 		}
 
 		this.view = (vnode: Vnode<any>) => {
-			return m(".abs.elevated-bg.plr.border-radius.dropdown-shadow", {
+			return m(".abs.elevated-bg.plr.border-radius.dropdown-shadow.flex.flex-column", {
 					style: {
 						width: px(Math.min(window.innerWidth - DROPDOWN_MARGIN * 2, 400)), // minus margin, need to apply it now to not overflow later
 						opacity: "0", // see hack description below
@@ -93,18 +91,10 @@ export class CalendarEventPopup implements ModalComponent {
 						// This is a hack to get "natural" view size but render it without opacity first and then show dropdown with inferred
 						// size.
 						setTimeout(() => showDropdown(this._eventBubbleRect, dom, dom.offsetHeight, 400), 24)
-
-						// We need to redraw so that we can set max-height of the body based on the newly created dom elements
-						setTimeout(() => m.redraw(), 26)
-						this._popupDom = dom
 					},
 				},
 				[
-					m(".flex.flex-end", {
-						oncreate: vnode => {
-							this._headerDom = vnode.dom
-						},
-					}, [
+					m(".flex.flex-end", [
 						m(ButtonN, {
 							label: "edit_action",
 							click: () => {
@@ -134,25 +124,12 @@ export class CalendarEventPopup implements ModalComponent {
 							colors: ButtonColors.DrawerNav,
 						}),
 					]),
-					m("", {
-						style: {
-							maxHeight: this.contentMaxHeight(),
-							overflow: "scroll"
-						}
-					}, m(EventPreviewView, {
+					m(".flex-grow.scroll.visible-scrollbar", m(EventPreviewView, {
 						event: this._calendarEvent,
 						sanitizedDescription: this._sanitizedDescription
 					})),
 				],
 			)
-		}
-	}
-
-	contentMaxHeight(): string {
-		if (this._popupDom && this._headerDom) {
-			return px(this._popupDom.offsetHeight - this._headerDom.offsetHeight)
-		} else {
-			return "none"
 		}
 	}
 
