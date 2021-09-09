@@ -15,7 +15,7 @@ import {GroupType, MAX_BLOB_SIZE_BYTES} from "../../common/TutanotaConstants"
 import {random} from "../crypto/Randomizer"
 import {_TypeModel as FileDataDataReturnTypeModel} from "../../entities/tutanota/FileDataDataReturn"
 import {HttpMethod, MediaType, resolveTypeReference} from "../../common/EntityFunctions"
-import {assertWorkerOrNode, getHttpOrigin, Mode} from "../../common/Env"
+import {assertWorkerOrNode, getHttpOrigin, isApp, isDesktop} from "../../common/Env"
 import {aesDecryptFile, aesEncryptFile} from "../../../native/worker/AesApp"
 import {handleRestError} from "../../common/error/RestError"
 import type {NativeDownloadResult} from "../../../native/common/FileApp"
@@ -70,8 +70,8 @@ export class FileFacade {
 	 */
 	async downloadFileContent(file: TutanotaFile): Promise<DataFile> {
 		const blockDownloader = (file) => this._downloadFileDataBlock(file)
-		const blobDownloader= (file) => this._downloadFileDataBlob(file)
-		const data = await this._downloadFileContentHigherOrder(file, blockDownloader, blobDownloader)
+		const blobDownloader = (file) => this._downloadFileDataBlob(file)
+		const data = await this._downloadFileWithDownloader(file, blockDownloader, blobDownloader)
 
 		const sessionKey = await resolveSessionKey(FileTypeModel, file)
 		return convertToDataFile(file, aes128Decrypt(neverNull(sessionKey), data))
@@ -82,11 +82,15 @@ export class FileFacade {
 	 */
 	async downloadFileContentNative(file: TutanotaFile): Promise<FileReference> {
 		const blockDownloader = (file) => this._downloadFileNative(file, file => this._downloadFileDataBlockNative(file))
-		const blobDownloader = (file) => this._downloadFileNative(file, file => this._fileBlobDownloaderNative(file));
-		return this._downloadFileContentHigherOrder(file, blockDownloader, blobDownloader)
+		const blobDownloader = (file) => this._downloadFileNative(file, file => this._downloadFileDataBlobNative(file));
+		return this._downloadFileWithDownloader(file, blockDownloader, blobDownloader)
 	}
 
-	async _downloadFileContentHigherOrder<T>(file: TutanotaFile, blockDownloader: (TutanotaFile) => Promise<T>, blobDownloader: (TutanotaFile) => Promise<T>): Promise<T> {
+	/**
+	 * Download a TutanotaFile to either a FileReference (on native) or a DataFile
+	 * Takes two functions that do the actual download depending on whether this TutanotaFile is saved as blobs (new BlobStorage) or blocks (old Database)
+	 */
+	async _downloadFileWithDownloader<T>(file: TutanotaFile, blockDownloader: (TutanotaFile) => Promise<T>, blobDownloader: (TutanotaFile) => Promise<T>): Promise<T> {
 		const fileDataId = assertNotNull(file.data, "trying to download a TutanotaFile that has no data")
 		const fileData = await locator.cachingEntityClient.load(FileDataTypeRef, fileDataId)
 
@@ -155,7 +159,13 @@ export class FileFacade {
 		return concat(...orderedBlobs)
 	}
 
-	async _fileBlobDownloaderNative(file: TutanotaFile): Promise<NativeDownloadResult> {
+	/**
+	 * Downloads the data of a TutanotaFile from blobs using native routines
+	 * @param file
+	 * @returns {Promise<NativeDownloadResult>} A promise containing the result of the download and a uri pointing to the actual encrypted file in the filesystem
+	 * @private
+	 */
+	async _downloadFileDataBlobNative(file: TutanotaFile): Promise<NativeDownloadResult> {
 		const serviceReturn: FileBlobServiceGetReturn = await serviceRequest(
 			TutanotaService.FileBlobService,
 			HttpMethod.GET,
