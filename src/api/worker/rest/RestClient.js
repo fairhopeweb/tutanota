@@ -219,6 +219,6 @@ export function addParamsToUrl(url: URL, urlParams: Params): URL {
 
 
 export function isSuspensionResponse(statusCode: number, suspensionTimeNumberString: ?string): boolean {
-	return Number(suspensionTimeNumberString) > 0
+	return Boolean(suspensionTimeNumberString) && Number(suspensionTimeNumberString) > 0
 		&& (statusCode === TooManyRequestsError.CODE || statusCode === ServiceUnavailableError.CODE)
 }
