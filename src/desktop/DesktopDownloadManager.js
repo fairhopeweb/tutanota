@@ -12,14 +12,8 @@ import type {DesktopUtils} from "./DesktopUtils"
 import {promises as fs} from "fs"
 import type {DateProvider} from "../calendar/date/CalendarUtils"
 import {CancelledError} from "../api/common/error/CancelledError"
-import type {BlobAccessInfo} from "../api/entities/sys/BlobAccessInfo"
-import type {BlobId} from "../api/entities/sys/BlobId"
 import type {NativeDownloadResult} from "../native/common/FileApp"
-import {StorageService} from "../api/entities/storage/Services"
 import {addParamsToUrl} from "../api/worker/rest/RestClient"
-import {_TypeModel as BlobDataGetTypeModel, createBlobDataGet} from "../api/entities/storage/BlobDataGet"
-import {encryptAndMapToLiteral} from "../api/worker/crypto/InstanceMapper"
-import {getRestPath} from "../api/entities/ServiceUtils"
 
 const TAG = "[DownloadManager]"
 
@@ -63,15 +57,15 @@ export class DesktopDownloadManager {
 		       .on("spellcheck-dictionary-download-failure", (ev, lcode) => log.debug(TAG, "spellcheck-dictionary-download-failure", lcode))
 	}
 
-	async downloadBlobNative(fileName: string, headers: {|v: string, accessToken: string|}, blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}>): Promise<NativeDownloadResult> {
+	async downloadBlobNative(header: Params, body: string, url: string, fileName: string): Promise<NativeDownloadResult> {
 		return new Promise(async (resolve, reject) => {
 			const downloadDirectory = await this.getTutanotaTempDirectory("download")
-			const encryptedFileUri = path.join(downloadDirectory, fileName)
-			const fileStream = this._fs.createWriteStream(encryptedFileUri)
+			const blobFileUri = path.join(downloadDirectory, fileName)
+			const fileStream = this._fs.createWriteStream(blobFileUri)
 			                       .on('close', () => resolve({
-					                       statusCode: 200,
-					                       encryptedFileUri
-				                       }))
+				                       statusCode: 200,
+				                       encryptedFileUri: blobFileUri
+			                       }))
 
 			let cleanup = e => {
 				cleanup = noOp
@@ -79,51 +73,28 @@ export class DesktopDownloadManager {
 				          .on('close', () => { // file descriptor was released
 					          fileStream.removeAllListeners('close')
 					          // remove file if it was already created
-					          this._fs.promises.unlink(encryptedFileUri)
+					          this._fs.promises.unlink(blobFileUri)
 					              .catch(noOp)
 					              .then(() => reject(e))
 				          })
 				          .end() // {end: true} doesn't work when response errors
 			}
 
-			// It is important that we download sequentially because we don't want simultaneous downloads AND the order is important,
-			// since we are writing one blob after the other in the file stream
 
-			// TODO: handle suspension while getting multiple blobs
-			for (const {blobId, accessInfo: {servers, storageAccessToken, archiveId}} of blobs) {
+			const sourceUrl = addParamsToUrl(new URL(url), {"_body": body})
 
-				const getData = createBlobDataGet({archiveId, blobId})
-				const literalGetData = await encryptAndMapToLiteral(BlobDataGetTypeModel, getData, null)
-				const body = JSON.stringify(literalGetData)
-
-				const sourceUrl = addParamsToUrl(new URL(getRestPath(StorageService.BlobService), servers[0].url), {
-					"_body": body
-				})
-				const storageHeader = Object.assign({
-					storageAccessToken,
-				}, (headers: Params))
-
-				await new Promise((resolve, reject) => {
-					this._net.request(sourceUrl.toString(), {method: "GET", timeout: 20000, headers: storageHeader})
-					    .on('response', response => {
-						    response.on('error', cleanup)
-						    if (response.statusCode !== 200) {
-							    // causes 'error' event
-							    response.destroy(response.statusCode)
-							    reject()
-							    return
-						    }
-						    response.on('end', resolve) // resolve after full body received
-						    response.pipe(fileStream, {end: false}) // do not close fileStream when done piping
-					    })
-					    .on('error', () => {
-						    cleanup()
-						    reject()
-					    })
-					    .end()
-				})
-			}
-			fileStream.close()
+			this._net.request(sourceUrl.toString(), {method: "GET", timeout: 20000, headers: header})
+			    .on('response', response => {
+				    response.on('error', cleanup)
+				    if (response.statusCode !== 200) {
+				    	// TODO: Make a specific error here?
+					    response.destroy(new Error(response.statusCode)) // causes 'error' event, triggers cleanup in error handler
+				    }
+				    response.on('end', resolve) // resolve after full body received
+				    response.pipe(fileStream) // closes fileStream when done piping
+			    })
+			    .on('error', cleanup)
+			    .end()
 		})
 	}
 

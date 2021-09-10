@@ -199,17 +199,19 @@ export class IPC {
 			case 'download':
 				// sourceUrl, filename, headers
 				return this._dl.downloadNative(...args.slice(0, 3))
-			case 'downloadBlobs': {
-				const filename: string = downcast(args[0])
-				const headers: {|v: string, accessToken: string|} = downcast(args[1])
-				const blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}> = downcast(args[2])
-				return this._dl.downloadBlobNative(filename, headers, blobs)
+			case 'downloadBlob': {
+				const headers: {|v: string, accessToken: string|} = downcast(args[0])
+				const body: string = downcast(args[1])
+				const url: string = downcast(args[2])
+				const filename: string = downcast(args[3])
+				return this._dl.downloadBlobNative(headers, body, url, filename)
 			}
-			case 'saveBlob':
+			case 'saveBlob':{
 				// args: [data.name, uint8ArrayToBase64(data.data)]
 				const filename: string = downcast(args[0])
 				const data: Uint8Array = base64ToUint8Array(downcast(args[1]))
 				return this._dl.saveBlob(filename, data)
+			}
 			case "aesDecryptFile":
 				// key, path
 				return this._crypto.aesDecryptFile(...args.slice(0, 2))

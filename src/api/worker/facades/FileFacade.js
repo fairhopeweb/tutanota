@@ -26,7 +26,6 @@ import {StorageService} from "../../entities/storage/Services"
 import {uint8ArrayToKey} from "../crypto/CryptoUtils"
 import {hash} from "../crypto/Sha256"
 import type {BlobId} from "../../entities/sys/BlobId"
-import {createBlobId} from "../../entities/sys/BlobId"
 import {serviceRequest, serviceRequestVoid} from "../EntityWorker"
 import {createBlobAccessTokenData} from "../../entities/storage/BlobAccessTokenData"
 import {BlobAccessTokenReturnTypeRef} from "../../entities/storage/BlobAccessTokenReturn"
@@ -48,11 +47,14 @@ import {locator} from "../WorkerLocator"
 import {createBlobReferenceDataPut} from "../../entities/storage/BlobReferenceDataPut"
 import type {TargetServer} from "../../entities/sys/TargetServer"
 import {ProgrammingError} from "../../common/error/ProgrammingError"
+import {getRestPath} from "../../entities/ServiceUtils"
 
 assertWorkerOrNode()
 
 const REST_PATH = "/rest/tutanota/filedataservice"
 const STORAGE_REST_PATH = `/rest/storage/${StorageService.BlobService}`
+
+type BlobDownloader<T> = (blobId: BlobId, headers: Params, body: string, server: TargetServer) => Promise<T>
 
 export class FileFacade {
 	_login: LoginFacadeImpl;
@@ -68,9 +70,9 @@ export class FileFacade {
 	/**
 	 * Download and decrypt a single blob.
 	 */
-	async downloadBlob(archiveId: Id, blobId: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
+	async downloadBlob(archiveId: Id, blobId: BlobId, key: Uint8Array): Promise<Uint8Array> {
 		const {storageAccessToken, servers} = await this._getDownloadToken(archiveId)
-		const data = await this._downloadRawBlob(storageAccessToken, archiveId, blobId, servers)
+		const data = await this._downloadRawBlob(storageAccessToken, archiveId, blobId, servers, this._blobDownloaderWeb.bind(this))
 		return aes128Decrypt(uint8ArrayToKey(key), data)
 	}
 
@@ -147,28 +149,11 @@ export class FileFacade {
 	 * @private
 	 */
 	async _downloadFileDataBlob(file: TutanotaFile): Promise<Uint8Array> {
-		const serviceReturn = await serviceRequest(
-			TutanotaService.FileBlobService,
-			HttpMethod.GET,
-			this._getFileRequestData(file),
-			FileBlobServiceGetReturnTypeRef
+		const blobs: Array<Uint8Array> = await this._downloadBlobsOfFile(
+			file,
+			(blobId: BlobId, headers: Params, body: string, server: TargetServer) => this._blobDownloaderWeb(blobId, headers, body, server)
 		)
-
-		const accessInfos = serviceReturn.accessInfos
-		const promises: Array<Promise<Array<{blobId: BlobId, data: Uint8Array}>>> = accessInfos.map(info =>
-			promiseMap(info.blobs, async blobId => {
-				const data: Uint8Array = await this._downloadRawBlob(info.storageAccessToken, info.archiveId, blobId.blobId, info.servers)
-				return {blobId, data}
-			}, {concurrency: 1})
-		)
-
-		const promisesResolved: Array<Array<{blobId: BlobId, data: Uint8Array}>> = await Promise.all(promises)
-		const blobs: Array<{blobId: BlobId, data: Uint8Array}> = promisesResolved.flat()
-
-		const orderedBlobs: Array<Uint8Array> = serviceReturn.blobs.map(blobId =>
-			blobs.find(blob => arrayEquals(blob.blobId.blobId, blobId.blobId))?.data ?? new Uint8Array(0)
-		)
-		return concat(...orderedBlobs)
+		return concat(...blobs)
 	}
 
 	/**
@@ -178,6 +163,22 @@ export class FileFacade {
 	 * @private
 	 */
 	async _downloadFileDataBlobNative(file: TutanotaFile): Promise<NativeDownloadResult> {
+		const downloader : BlobDownloader<NativeDownloadResult> = (blobId: BlobId, headers: Params, body: string, server: TargetServer) => {
+			const filename = uint8ArrayToBase64(blobId.blobId) + ".blob"
+			return fileApp.downloadBlob(headers, body, new URL(getRestPath(StorageService.BlobService), server.url).toString(), filename)
+		}
+		const blobs: Array<NativeDownloadResult> = await this._downloadBlobsOfFile(file, downloader)
+
+		// make sure all suspensions have been handled
+
+		// check that all downloads succeeded
+
+		// now blobs has the correct order of downloaded blobs, and we need to tell native to join them
+		const fileUris = blobs.map(r => r.encryptedFileUri)
+		return fileApp.joinFiles(fileUris)
+	}
+
+	async _downloadBlobsOfFile<T>(file: TutanotaFile, downloader: BlobDownloader<T>): Promise<Array<T>> {
 		const serviceReturn: FileBlobServiceGetReturn = await serviceRequest(
 			TutanotaService.FileBlobService,
 			HttpMethod.GET,
@@ -195,9 +196,9 @@ export class FileFacade {
 			}
 		)
 
-		let headers = this._login.createAuthHeaders()
-		headers['v'] = BlobDataGetTypeModel.version
-		return fileApp.downloadBlobs(file.name, headers, orderedBlobInfos)
+		return promiseMap(orderedBlobInfos, ({blobId, accessInfo}) => {
+			return this._downloadRawBlob(accessInfo.storageAccessToken, accessInfo.archiveId, blobId, accessInfo.servers, downloader)
+		}, {concurrency: 1})
 	}
 
 	/**
@@ -241,7 +242,7 @@ export class FileFacade {
 
 			} else if (isSuspensionResponse(statusCode, suspensionTime)) {
 				this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
-				return this._suspensionHandler.deferRequest(() => fileDownloader(file))
+				return this._suspensionHandler.deferRequest(() => this._downloadFileNative(file, fileDownloader))
 			} else {
 				throw handleRestError(statusCode, ` | GET failed to natively download attachment`, errorId, precondition)
 			}
@@ -263,19 +264,29 @@ export class FileFacade {
 		return requestData
 	}
 
-	async _downloadRawBlob(storageAccessToken: string, archiveId: Id, blobId: Uint8Array, servers: Array<TargetServer>): Promise<Uint8Array> {
+	async _downloadRawBlob<T>(storageAccessToken: string, archiveId: Id, blobId: BlobId, servers: Array<TargetServer>, blobDownloader: BlobDownloader<T>): Promise<T> {
 		const headers = Object.assign({
 			storageAccessToken,
 			'v': BlobDataGetTypeModel.version
 		}, this._login.createAuthHeaders())
 		const getData = createBlobDataGet({
 			archiveId,
-			blobId: createBlobId({blobId})
+			blobId
 		})
 		const literalGetData = await encryptAndMapToLiteral(BlobDataGetTypeModel, getData, null)
 		const body = JSON.stringify(literalGetData)
-		return await this._restClient.request(STORAGE_REST_PATH, HttpMethod.GET, {},
-			headers, body, MediaType.Binary, null, servers[0].url)
+		const server = servers[0] // TODO: Use another server if download fails
+
+		return blobDownloader(blobId, headers, body, server)
+	}
+
+	async _blobDownloaderWeb(blobId: BlobId, headers: Params, body: string, server: TargetServer): Promise<Uint8Array> {
+		return this._restClient.request(getRestPath(StorageService.BlobService), HttpMethod.GET, {},
+			headers, body, MediaType.Binary, null, server.url)
+	}
+
+	async _blobDownloaderNative(headers: Params, body: string, servers: Array<TargetServer>, fileName: string): Promise<NativeDownloadResult> {
+		return fileApp.downloadBlob(headers, body, new URL(getRestPath(StorageService.BlobService), servers[0].url).toString(), fileName)
 	}
 
 	async _getDownloadToken(readArchiveId: Id): Promise<BlobAccessInfo> {

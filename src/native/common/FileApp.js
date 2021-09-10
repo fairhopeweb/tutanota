@@ -4,15 +4,13 @@ import {Request} from "../../api/common/WorkerProtocol"
 import {uint8ArrayToBase64} from "../../api/common/utils/Encoding"
 import type {MailBundle} from "../../mail/export/Bundler";
 import {promiseMap} from "../../api/common/utils/PromiseUtils"
-import type {BlobAccessInfo} from "../../api/entities/sys/BlobAccessInfo"
-import type {BlobId} from "../../api/entities/sys/BlobId"
 
 
 export const fileApp = {
 	openFileChooser,
 	openFolderChooser,
 	download,
-	downloadBlobs,
+	downloadBlob,
 	upload,
 	open,
 	deleteFile,
@@ -100,8 +98,8 @@ export function putFileIntoDownloadsFolder(localFileUri: string): Promise<string
 	return nativeApp.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 }
 
-export function downloadBlobs(filename: string, headers: Object, blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}>): Promise<NativeDownloadResult> {
-	return nativeApp.invokeNative(new Request('downloadBlobs', [filename, headers, blobs]))
+export function downloadBlob(headers: Params, body: string, url: string, filename: string): Promise<NativeDownloadResult> {
+	return nativeApp.invokeNative(new Request('downloadBlob', [headers, body, url, filename])) // fixme args
 }
 
 function saveBlob(data: DataFile): Promise<void> {
