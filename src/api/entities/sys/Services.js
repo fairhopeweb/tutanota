@@ -46,3 +46,5 @@ export const SysService = Object.freeze({
 	GiftCardService: "giftcardservice",
 	GiftCardRedeemService: "giftcardredeemservice"
 })
+
+export type SysServiceType = $Values<typeof SysService>

@@ -8,7 +8,6 @@ export const TutanotaService = Object.freeze({
 	PasswordRetrievalService: "passwordretrievalservice",
 	PasswordChannelResource: "passwordchannelresource",
 	FileDataService: "filedataservice",
-	FileBlobService: "fileblobservice",
 	MoveMailService: "movemailservice",
 	MailFolderService: "mailfolderservice",
 	EncryptTutanotaPropertiesService: "encrypttutanotapropertiesservice",
@@ -24,11 +23,8 @@ export const TutanotaService = Object.freeze({
 	GroupInvitationService: "groupinvitationservice",
 	ReportMailService: "reportmailservice",
 	EntropyService: "entropyservice",
-	TemplateGroupService: "templategroupservice"
+	TemplateGroupService: "templategroupservice",
+	FileBlobService: "fileblobservice"
 })
 
 export type TutanotaServiceType = $Values<typeof TutanotaService>
-
-export function getRestPath(service: TutanotaServiceType): string {
-	return `/rest/tutanota/${service}`
-}
