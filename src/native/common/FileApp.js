@@ -11,6 +11,7 @@ export const fileApp = {
 	openFolderChooser,
 	download,
 	downloadBlob,
+	joinFiles,
 	upload,
 	open,
 	deleteFile,
@@ -100,6 +101,10 @@ export function putFileIntoDownloadsFolder(localFileUri: string): Promise<string
 
 export function downloadBlob(headers: Params, body: string, url: string, filename: string): Promise<NativeDownloadResult> {
 	return nativeApp.invokeNative(new Request('downloadBlob', [headers, body, url, filename])) // fixme args
+}
+
+export function joinFiles(filename: string, files: Array<string>): Promise<string> {
+	return nativeApp.invokeNative(new Request('joinFiles', [filename, files]))
 }
 
 function saveBlob(data: DataFile): Promise<void> {

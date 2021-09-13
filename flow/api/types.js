@@ -136,6 +136,7 @@ type NativeRequestType = 'init'
 	| 'setSelectedTheme'
 	| 'getThemes'
 	| 'setThemes'
+	| 'joinFiles'
 
 /** Requests from native to web */
 type JsRequestType = 'createMailEditor'

@@ -87,10 +87,9 @@ export class DesktopDownloadManager {
 			    .on('response', response => {
 				    response.on('error', cleanup)
 				    if (response.statusCode !== 200) {
-				    	// TODO: Make a specific error here?
+					    // TODO: Make a specific error here?
 					    response.destroy(new Error(response.statusCode)) // causes 'error' event, triggers cleanup in error handler
 				    }
-				    response.on('end', resolve) // resolve after full body received
 				    response.pipe(fileStream) // closes fileStream when done piping
 			    })
 			    .on('error', cleanup)
@@ -218,5 +217,30 @@ export class DesktopDownloadManager {
 		// TODO Flow doesn't know about the options param, we should update it and then remove this downcast
 		// Using sync version because this could get called on app shutdown and it may not complete if async
 		downcast(this._fs.rmdirSync)(this.getTutanotaTempPath(), {recursive: true})
+	}
+
+	async joinFiles(filename: string, files: Array<string>): Promise<string> {
+		const downloadDirectory = await this.getTutanotaTempDirectory("download")
+		const fileUri = path.join(downloadDirectory, filename)
+
+		const writeStream = this._fs.createWriteStream(fileUri, {autoClose: false})
+
+		for (const infile of files) {
+			await new Promise((resolve, reject) => {
+				const readStream = this._fs.createReadStream(infile)
+				readStream.on('end', resolve)
+				readStream.on('error', reject)
+				readStream.pipe(writeStream, {end: false})
+			})
+		}
+		// Wait for the write stream to finish
+		await new Promise((resolve, reject) => {
+			writeStream.end(resolve)
+		})
+		return fileUri
+	}
+
+	async deleteFile(filename: string): Promise<void> {
+		return this._fs.promises.unlink(filename)
 	}
 }

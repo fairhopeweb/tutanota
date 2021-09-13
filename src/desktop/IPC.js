@@ -26,8 +26,6 @@ import {DesktopAlarmScheduler} from "./sse/DesktopAlarmScheduler"
 import {ProgrammingError} from "../api/common/error/ProgrammingError"
 import {ThemeManager} from "./ThemeManager"
 import type {ThemeId} from "../gui/theme"
-import type {BlobAccessInfo} from "../api/entities/sys/BlobAccessInfo"
-import type {BlobId} from "../api/entities/sys/BlobId"
 
 /**
  * node-side endpoint for communication between the renderer threads and the node thread
@@ -206,15 +204,26 @@ export class IPC {
 				const filename: string = downcast(args[3])
 				return this._dl.downloadBlobNative(headers, body, url, filename)
 			}
-			case 'saveBlob':{
+			case 'joinFiles': {
+				const filename: string = downcast(args[0])
+				const files: Array<string> = downcast(args[1])
+				return this._dl.joinFiles(filename, files)
+			}
+			case 'saveBlob': {
 				// args: [data.name, uint8ArrayToBase64(data.data)]
 				const filename: string = downcast(args[0])
 				const data: Uint8Array = base64ToUint8Array(downcast(args[1]))
 				return this._dl.saveBlob(filename, data)
 			}
-			case "aesDecryptFile":
-				// key, path
-				return this._crypto.aesDecryptFile(...args.slice(0, 2))
+			case 'deleteFile' : {
+				const filename: string = downcast(args[0])
+				return this._dl.deleteFile(filename)
+			}
+			case "aesDecryptFile": {
+				const encodedKey: string = args[0]
+				const path: string = args[1]
+				return this._crypto.aesDecryptFile(encodedKey, path)
+			}
 			case 'setConfigValue':
 				const [key, value] = args.slice(0, 2)
 				return this._conf.setVar(key, value)
