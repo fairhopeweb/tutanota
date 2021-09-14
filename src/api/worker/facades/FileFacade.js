@@ -136,7 +136,7 @@ export class FileFacade {
 		const body = JSON.stringify(entityToSend)
 		let headers = this._login.createAuthHeaders()
 
-		headers['v'] = BlobDataGetTypeModel.version
+		headers['v'] = FileDataDataGetTypeModel.version
 		let queryParams = {'_body': body}
 		let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
 		return fileApp.download(url.toString(), headers, file.name)

@@ -31,15 +31,20 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.SequenceInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -84,6 +89,15 @@ public class FileUtil {
 				throw new Exception("could not deleteAlarmNotification file " + fileUri);
 			}
 		}
+	}
+
+	String joinFiles(final String fileUri, List<String> filesToJoin) throws IOException {
+		List<InputStream> inStreams = new ArrayList<InputStream>(filesToJoin.size());
+		for (String infile : filesToJoin) {
+			inStreams.add(new FileInputStream(new File(Uri.parse(infile).getPath())));
+		}
+		File written = writeFileToEncryptedDir(fileUri, new SequenceInputStream(Collections.enumeration(inStreams)));
+		return Utils.fileToUri(written);
 	}
 
 	Promise<Object, Exception, Void> openFileChooser() {
@@ -279,7 +293,7 @@ public class FileUtil {
 		}
 	}
 
-	JSONObject download(final String sourceUrl, final String filename, final JSONObject headers) throws IOException, JSONException {
+	JSONObject download(final String sourceUrl, final JSONObject headers, final String filename) throws IOException, JSONException {
 		HttpURLConnection con = null;
 		try {
 			con = (HttpURLConnection) (new URL(sourceUrl)).openConnection();
@@ -315,11 +329,9 @@ public class FileUtil {
 	}
 
 	private File writeFileToDir(String filename, InputStream inputStream, String directory) throws IOException {
-
-		File file;
 		File dir = new File(Utils.getDir(activity), directory);
 		dir.mkdirs();
-		file = new File(dir, filename);
+		File file = new File(dir, filename);
 
 		IOUtils.copyLarge(inputStream, new FileOutputStream(file),
 				new byte[1024 * 1000]);
@@ -331,7 +343,7 @@ public class FileUtil {
 	}
 
 	private File writeFileToEncryptedDir(String filename, InputStream inputStream) throws IOException {
-		return  writeFileToDir(filename, inputStream, Crypto.TEMP_DIR_ENCRYPTED);
+		return writeFileToDir(filename, inputStream, Crypto.TEMP_DIR_ENCRYPTED);
 	}
 
 	Promise<Object, Exception, Void> saveBlob(final String name, final String base64blob) {
@@ -373,5 +385,4 @@ public class FileUtil {
 			}
 		}
 	}
-
 }

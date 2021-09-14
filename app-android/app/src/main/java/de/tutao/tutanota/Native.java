@@ -219,9 +219,19 @@ public final class Native {
 				case "upload":
 					promise.resolve(files.upload(args.getString(0), args.getString(1), args.getJSONObject(2)));
 					break;
-				case "download":
-					promise.resolve(files.download(args.getString(0), args.getString(1), args.getJSONObject(2)));
+				case "download": {
+					String url = args.getString(0);
+					JSONObject headers = args.getJSONObject(1);
+					String filename = args.getString(2);
+					promise.resolve(files.download(url, headers, filename));
 					break;
+				}
+				case "joinFiles": {
+					String filename = args.getString(0);
+					List<String> filesTojoin = jsonArrayToTypedList(args.getJSONArray(1));
+					promise.resolve(files.joinFiles(filename, filesTojoin));
+					break;
+				}
 				case "clearFileData":
 					files.clearFileData();
 					promise.resolve(null);
@@ -326,6 +336,14 @@ public final class Native {
 		}
 		activity.startService(LocalNotificationsFacade.notificationDismissedIntent(activity,
 				emailAddesses, "Native", false));
+	}
+
+	private <T> List<T> jsonArrayToTypedList(JSONArray jsonArray) throws JSONException {
+		List<T> l = new ArrayList<>(jsonArray.length());
+		for (int i = 0; i < jsonArray.length(); i++) {
+			l.add((T) jsonArray.get(i));
+		}
+		return l;
 	}
 
 	private boolean openLink(@Nullable String uri) {
