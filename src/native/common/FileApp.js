@@ -10,7 +10,6 @@ export const fileApp = {
 	openFileChooser,
 	openFolderChooser,
 	download,
-	downloadBlob,
 	joinFiles,
 	upload,
 	open,
@@ -99,10 +98,6 @@ export function putFileIntoDownloadsFolder(localFileUri: string): Promise<string
 	return nativeApp.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 }
 
-export function downloadBlob(headers: Params, body: string, url: string, filename: string): Promise<NativeDownloadResult> {
-	return nativeApp.invokeNative(new Request('downloadBlob', [headers, body, url, filename])) // fixme args
-}
-
 export function joinFiles(filename: string, files: Array<string>): Promise<string> {
 	return nativeApp.invokeNative(new Request('joinFiles', [filename, files]))
 }
@@ -131,8 +126,8 @@ export type NativeDownloadResult = {
  * Downloads the binary data of a file from tutadb and stores it in the internal memory.
  * @returns Resolves to the URI of the downloaded file
  */
-function download(sourceUrl: string, filename: string, headers: Object): Promise<NativeDownloadResult> {
-	return nativeApp.invokeNative(new Request("download", [sourceUrl, filename, headers]))
+export function download(url: string, headers: Params, filename: string): Promise<NativeDownloadResult> {
+	return nativeApp.invokeNative(new Request('download', [url, headers, filename]))
 }
 
 function clearFileData(): Promise<any> {

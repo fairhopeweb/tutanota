@@ -139,7 +139,7 @@ export class FileFacade {
 		headers['v'] = BlobDataGetTypeModel.version
 		let queryParams = {'_body': body}
 		let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
-		return fileApp.download(url.toString(), file.name, headers)
+		return fileApp.download(url.toString(), headers, file.name)
 	}
 
 	/**
@@ -304,7 +304,9 @@ export class FileFacade {
 
 	async _blobDownloaderNative(blobId: BlobId, headers: Params, body: string, server: TargetServer): Promise<NativeDownloadResult> {
 		const filename = uint8ArrayToBase64(blobId.blobId) + ".blob"
-		return fileApp.downloadBlob(headers, body, new URL(getRestPath(StorageService.BlobService), server.url).toString(), filename)
+		const serviceUrl = new URL(getRestPath(StorageService.BlobService), server.url)
+		const url = addParamsToUrl(serviceUrl, {"_body": body})
+		return fileApp.download(url.toString(), headers, filename)
 	}
 
 	async _getDownloadToken(readArchiveId: Id): Promise<BlobAccessInfo> {

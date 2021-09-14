@@ -194,15 +194,11 @@ export class IPC {
 				const location = args[0]
 				return this._desktopUtils.readDataFile(location)
 			}
-			case 'download':
-				// sourceUrl, filename, headers
-				return this._dl.downloadNative(...args.slice(0, 3))
-			case 'downloadBlob': {
-				const headers: {|v: string, accessToken: string|} = downcast(args[0])
-				const body: string = downcast(args[1])
-				const url: string = downcast(args[2])
-				const filename: string = downcast(args[3])
-				return this._dl.downloadBlobNative(headers, body, url, filename)
+			case 'download': {
+				const url: string = downcast(args[0])
+				const headers: {|v: string, accessToken: string|} = downcast(args[1])
+				const filename: string = downcast(args[2])
+				return this._dl.downloadNative(url, headers, filename)
 			}
 			case 'joinFiles': {
 				const filename: string = downcast(args[0])

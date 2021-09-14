@@ -795,7 +795,7 @@ o.spec("IPC tests", function () {
 		electronMock.ipcMain.callbacks[CALLBACK_ID](dummyEvent(WINDOW_ID), {
 			type: "download",
 			id: "id2",
-			args: ["url://file/to/download", "filename", {one: "somevalue", two: "anothervalue"}]
+			args: ["url://file/to/download", {one: "somevalue", two: "anothervalue"}, "filename"]
 		})
 
 		setTimeout(() => {

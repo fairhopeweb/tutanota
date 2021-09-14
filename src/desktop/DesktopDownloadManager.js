@@ -13,7 +13,6 @@ import {promises as fs} from "fs"
 import type {DateProvider} from "../calendar/date/CalendarUtils"
 import {CancelledError} from "../api/common/error/CancelledError"
 import type {NativeDownloadResult} from "../native/common/FileApp"
-import {addParamsToUrl} from "../api/worker/rest/RestClient"
 
 const TAG = "[DownloadManager]"
 
@@ -57,14 +56,14 @@ export class DesktopDownloadManager {
 		       .on("spellcheck-dictionary-download-failure", (ev, lcode) => log.debug(TAG, "spellcheck-dictionary-download-failure", lcode))
 	}
 
-	async downloadBlobNative(header: Params, body: string, url: string, fileName: string): Promise<NativeDownloadResult> {
+	async downloadNative(url: string, headers: Params, filename: string): Promise<NativeDownloadResult> {
 		return new Promise(async (resolve, reject) => {
 			const downloadDirectory = await this.getTutanotaTempDirectory("download")
-			const blobFileUri = path.join(downloadDirectory, fileName)
-			const fileStream = this._fs.createWriteStream(blobFileUri)
+			const encryptedFileUri = path.join(downloadDirectory, filename)
+			const fileStream = this._fs.createWriteStream(encryptedFileUri)
 			                       .on('close', () => resolve({
 				                       statusCode: 200,
-				                       encryptedFileUri: blobFileUri
+				                       encryptedFileUri: encryptedFileUri
 			                       }))
 
 			let cleanup = e => {
@@ -73,17 +72,14 @@ export class DesktopDownloadManager {
 				          .on('close', () => { // file descriptor was released
 					          fileStream.removeAllListeners('close')
 					          // remove file if it was already created
-					          this._fs.promises.unlink(blobFileUri)
+					          this._fs.promises.unlink(encryptedFileUri)
 					              .catch(noOp)
 					              .then(() => reject(e))
 				          })
 				          .end() // {end: true} doesn't work when response errors
 			}
 
-
-			const sourceUrl = addParamsToUrl(new URL(url), {"_body": body})
-
-			this._net.request(sourceUrl.toString(), {method: "GET", timeout: 20000, headers: header})
+			this._net.request(url.toString(), {method: "GET", timeout: 20000, headers: headers})
 			    .on('response', response => {
 				    response.on('error', cleanup)
 				    if (response.statusCode !== 200) {
@@ -97,38 +93,6 @@ export class DesktopDownloadManager {
 		})
 	}
 
-	async downloadNative(sourceUrl: string, fileName: string, headers: {|v: string, accessToken: string|}): Promise<NativeDownloadResult> {
-		return new Promise(async (resolve, reject) => {
-			const downloadDirectory = await this.getTutanotaTempDirectory("download")
-			const encryptedFileUri = path.join(downloadDirectory, fileName)
-			const fileStream = this._fs.createWriteStream(encryptedFileUri, {emitClose: true})
-			                       .on('finish', () => fileStream.close()) // .end() was called, contents is flushed -> release file desc
-			let cleanup = e => {
-				cleanup = noOp
-				fileStream.removeAllListeners('close').on('close', () => { // file descriptor was released
-					fileStream.removeAllListeners('close')
-					// remove file if it was already created
-					this._fs.promises.unlink(encryptedFileUri).catch(noOp).then(() => reject(e))
-				}).end() // {end: true} doesn't work when response errors
-			}
-			this._net.request(sourceUrl, {method: "GET", timeout: 20000, headers})
-			    .on('response', response => {
-				    response.on('error', cleanup)
-				    if (response.statusCode !== 200) {
-					    // causes 'error' event
-					    response.destroy(response.statusCode)
-					    return
-				    }
-				    response.pipe(fileStream, {end: true}) // automatically .end() fileStream when dl is done
-				    const result = {
-					    statusCode: response.statusCode,
-					    statusMessage: response.statusMessage,
-					    encryptedFileUri
-				    }
-				    fileStream.on('close', () => resolve(result))
-			    }).on('error', cleanup).end()
-		})
-	}
 
 	open(itemPath: string): Promise<void> {
 		const tryOpen = () => this._electron.shell
