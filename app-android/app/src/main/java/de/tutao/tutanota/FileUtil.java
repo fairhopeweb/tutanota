@@ -279,11 +279,11 @@ public class FileUtil {
 			addHeadersToRequest(con, headers);
 			con.connect();
 			IOUtils.copy(inputStream, con.getOutputStream());
-			JSONObject response = new JSONObject();
-			response.put("statusCode", con.getResponseCode());
-			response.put("errorId", con.getHeaderField("Error-Id")); // see ResourceConstants.ERROR_ID_HEADER
-			response.put("precondition", con.getHeaderField("Precondition")); // see ResourceConstants.PRECONDITION_HEADER
-			response.put("suspensionTime", con.getHeaderField("Retry-After"));
+			JSONObject response = new JSONObject()
+					.put("statusCode", con.getResponseCode())
+					.put("errorId", con.getHeaderField("Error-Id")) // see ResourceConstants.ERROR_ID_HEADER
+					.put("precondition", con.getHeaderField("Precondition")) // see ResourceConstants.PRECONDITION_HEADER
+					.put("suspensionTime", con.getHeaderField("Retry-After"));
 			if (!response.has("suspensionTime")) {
 				response.put("suspensionTime", con.getHeaderField("Suspension-Time"));
 			}
@@ -311,12 +311,12 @@ public class FileUtil {
 				encryptedFile = writeFileToEncryptedDir(filename, inputStream);
 			}
 
-			JSONObject result = new JSONObject();
-			result.put("statusCode", con.getResponseCode());
-			result.put("encryptedFileUri", encryptedFile != null ? Utils.fileToUri(encryptedFile) : JSONObject.NULL);
-			result.put("errorId", con.getHeaderField("Error-Id")); // see ResourceConstants.ERROR_ID_HEADER
-			result.put("precondition", con.getHeaderField("Precondition")); // see ResourceConstants.PRECONDITION_HEADER
-			result.put("suspensionTime", con.getHeaderField("Retry-After"));
+			JSONObject result = new JSONObject()
+					.put("statusCode", con.getResponseCode())
+					.put("encryptedFileUri", encryptedFile != null ? Utils.fileToUri(encryptedFile) : JSONObject.NULL)
+					.put("errorId", con.getHeaderField("Error-Id")) // see ResourceConstants.ERROR_ID_HEADER
+					.put("precondition", con.getHeaderField("Precondition")) // see ResourceConstants.PRECONDITION_HEADER
+					.put("suspensionTime", con.getHeaderField("Retry-After"));
 			if (!result.has("suspensionTime")) {
 				result.put("suspensionTime", con.getHeaderField("Suspension-Time"));
 			}

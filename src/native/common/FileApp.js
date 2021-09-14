@@ -11,6 +11,7 @@ export const fileApp = {
 	openFolderChooser,
 	download,
 	joinFiles,
+	splitFileIntoBlobs,
 	upload,
 	open,
 	deleteFile,
