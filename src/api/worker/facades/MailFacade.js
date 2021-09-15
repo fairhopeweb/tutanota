@@ -234,16 +234,17 @@ export class MailFacade {
 			return promiseMap(providedFiles, providedFile => {
 				// check if this is a new attachment or an existing one
 				if (providedFile._type === "DataFile") {
-					// user added attachment
+					// user added attachment on the web
 					const fileSessionKey = aes128RandomKey()
 					const dataFile = downcast<DataFile>(providedFile)
 					return this._file.uploadFileBlobData(dataFile, fileSessionKey).then(fileDataId => {
 						return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, dataFile, mailGroupKey)
 					})
 				} else if (providedFile._type === "FileReference") {
+					// "usually" attaching a file on a native implementation
 					const fileSessionKey = aes128RandomKey()
 					const fileRef = downcast<FileReference>(providedFile)
-					return this._file.uploadFileDataNative(fileRef, fileSessionKey).then(fileDataId => {
+					return this._file.uploadFileBlobDataNative(fileRef, fileSessionKey).then(fileDataId => {
 						return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, fileRef, mailGroupKey)
 					})
 				} else if (!containsId(existingFileIds, getLetId(providedFile))) {

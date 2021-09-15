@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.BoundedInputStream;
 import org.jdeferred.DoneFilter;
 import org.jdeferred.DonePipe;
 import org.jdeferred.Promise;
@@ -30,6 +31,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -41,7 +43,10 @@ import java.io.SequenceInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +56,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import de.tutao.tutanota.push.LocalNotificationsFacade;
+
+import static de.tutao.tutanota.Utils.bytesToBase64;
 
 
 public class FileUtil {
@@ -279,12 +286,15 @@ public class FileUtil {
 			addHeadersToRequest(con, headers);
 			con.connect();
 			IOUtils.copy(inputStream, con.getOutputStream());
+			ByteArrayOutputStream responseBodyStream = new ByteArrayOutputStream();
+			IOUtils.copy(con.getInputStream(), responseBodyStream);
 			JSONObject response = new JSONObject()
 					.put("statusCode", con.getResponseCode())
 					.put("errorId", con.getHeaderField("Error-Id")) // see ResourceConstants.ERROR_ID_HEADER
 					.put("precondition", con.getHeaderField("Precondition")) // see ResourceConstants.PRECONDITION_HEADER
-					.put("suspensionTime", con.getHeaderField("Retry-After"));
-			if (!response.has("suspensionTime")) {
+					.put("suspensionTime", con.getHeaderField("Retry-After"))
+					.put("responseBody", responseBodyStream.toByteArray());
+			if (!response.has("suspensionTime")) { // enters this block if "Retry-After" header is not set
 				response.put("suspensionTime", con.getHeaderField("Suspension-Time"));
 			}
 			return response;
@@ -384,5 +394,25 @@ public class FileUtil {
 				file.delete();
 			}
 		}
+	}
+
+	public JSONArray splitFile(String fileUri, int maxBlobSize) throws IOException, NoSuchAlgorithmException, JSONException {
+		Uri file = Uri.parse(fileUri);
+		long fileSize = Utils.getFileInfo(activity, file).size;
+		InputStream inputStream = activity.getContentResolver().openInputStream(file);
+		HashingInputStream hashingInputStream = new HashingInputStream(MessageDigest.getInstance("SHA-256"), inputStream);
+		List<JSONObject> blobs = new ArrayList<>();
+		for (int chunk = 0; chunk * maxBlobSize <= fileSize; chunk++) {
+			String tmpFilename = file.hashCode() + "." + chunk + ".blob";
+			BoundedInputStream chunkedInputStream = new BoundedInputStream(hashingInputStream, maxBlobSize);
+			File tmpFile = writeFileToEncryptedDir(tmpFilename, chunkedInputStream);
+			byte[] hash = hashingInputStream.hash(); // resets the hash
+
+			JSONObject blob = new JSONObject()
+					.put("blobId", bytesToBase64(Arrays.copyOf(hash, 6)))
+					.put("uri", Utils.fileToUri(tmpFile));
+			blobs.add(blob);
+		}
+		return new JSONArray(blobs);
 	}
 }

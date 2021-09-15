@@ -1,9 +1,10 @@
 // @flow
 import {Request} from "../../api/common/WorkerProtocol"
-import {getFilesMetaData} from "../common/FileApp"
+import {uriToFileRef} from "../common/FileApp"
 import {CloseEventBusOption, SECOND_MS} from "../../api/common/TutanotaConstants"
 import {nativeApp} from "../common/NativeWrapper"
 import {showSpellcheckLanguageDialog} from "../../gui/dialogs/SpellcheckLanguageDialog"
+import {promiseMap} from "../../api/common/utils/PromiseUtils"
 
 /**
  * create a mail editor as requested from the native side, ie because a
@@ -36,7 +37,7 @@ async function createMailEditor(msg: Request): Promise<void> {
 	if (mailToUrl) {
 		editor = await newMailtoUrlMailEditor(mailToUrl, false, mailboxDetails)
 	} else {
-		const files = await getFilesMetaData(filesUris)
+		const files = await promiseMap(filesUris, uriToFileRef)
 		const address = addresses && addresses[0] || ""
 		const recipients = address ? {to: [{name: "", address: address}]} : {}
 		editor = await newMailEditorFromTemplate(

@@ -4,6 +4,8 @@ import {Request} from "../../api/common/WorkerProtocol"
 import {uint8ArrayToBase64} from "../../api/common/utils/Encoding"
 import type {MailBundle} from "../../mail/export/Bundler";
 import {promiseMap} from "../../api/common/utils/PromiseUtils"
+import {MAX_BLOB_SIZE_BYTES} from "../../api/common/TutanotaConstants"
+import type {BlobUploadData} from "../../api/worker/facades/FileFacade"
 
 
 export const fileApp = {
@@ -24,6 +26,15 @@ export const fileApp = {
 	checkFileExistsInExportDirectory
 }
 
+async function splitFileIntoBlobs(file: FileReference): Promise<Array<BlobUploadData<FileReference>>> {
+	const response: Array<{blobId: string, uri: string}> = await nativeApp.invokeNative(
+		new Request("splitFileIntoBlobs", [file.location, MAX_BLOB_SIZE_BYTES])
+	)
+	return promiseMap(response, async ({blobId, uri}) => ({
+			blobId, data: await uriToFileRef(uri)
+		}
+	))
+}
 
 /**
  * Open the file
@@ -99,7 +110,7 @@ export function putFileIntoDownloadsFolder(localFileUri: string): Promise<string
 	return nativeApp.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 }
 
-export function joinFiles(filename: string, files: Array<string>): Promise<string> {
+function joinFiles(filename: string, files: Array<string>): Promise<string> {
 	return nativeApp.invokeNative(new Request('joinFiles', [filename, files]))
 }
 
@@ -111,8 +122,16 @@ function saveBlob(data: DataFile): Promise<void> {
  * Uploads the binary data of a file to tutadb
  */
 function upload(fileUrl: string, targetUrl: string,
-                headers: Object): Promise<{statusCode: number, errorId: ?string, precondition: ?string, uri: ?string, suspensionTime: ?string}> {
+                headers: Object): Promise<NativeUploadResult> {
 	return nativeApp.invokeNative(new Request("upload", [fileUrl, targetUrl, headers]))
+}
+
+export type NativeUploadResult = {
+	statusCode: number,
+	errorId: ?string,
+	precondition: ?string,
+	suspensionTime: ?string,
+	responseBody: Uint8Array
 }
 
 export type NativeDownloadResult = {
@@ -127,7 +146,7 @@ export type NativeDownloadResult = {
  * Downloads the binary data of a file from tutadb and stores it in the internal memory.
  * @returns Resolves to the URI of the downloaded file
  */
-export function download(url: string, headers: Params, filename: string): Promise<NativeDownloadResult> {
+function download(url: string, headers: Params, filename: string): Promise<NativeDownloadResult> {
 	return nativeApp.invokeNative(new Request('download', [url, headers, filename]))
 }
 
@@ -174,17 +193,4 @@ function saveToExportDir(file: DataFile): Promise<void> {
 
 function checkFileExistsInExportDirectory(path: string): Promise<boolean> {
 	return nativeApp.invokeNative(new Request("checkFileExistsInExportDirectory", [path]))
-}
-
-export function getFilesMetaData(filesUris: string[]): Promise<Array<FileReference>> {
-	return promiseMap(filesUris, async uri => {
-		const [name, mimeType, size] = await Promise.all([getName(uri), getMimeType(uri), getSize(uri)])
-		return {
-			_type: "FileReference",
-			name,
-			mimeType,
-			size,
-			location: uri
-		}
-	})
 }

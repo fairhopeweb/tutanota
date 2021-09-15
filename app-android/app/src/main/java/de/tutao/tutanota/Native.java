@@ -232,6 +232,12 @@ public final class Native {
 					promise.resolve(files.joinFiles(filename, filesTojoin));
 					break;
 				}
+				case "splitFileIntoBlobs": {
+					String filename = args.getString(0);
+					int maxBlobSize = args.getInt(1);
+					promise.resolve(files.splitFile(filename, maxBlobSize));
+					break;
+				}
 				case "clearFileData":
 					files.clearFileData();
 					promise.resolve(null);
