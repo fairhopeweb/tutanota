@@ -89,6 +89,7 @@ function debugModels() {
 				"../entities/tutanota/tutanotaModelMap": "src/api/entities/tutanota/tutanotaModelMapDebug.js",
 				"../entities/monitor/monitorModelMap": "src/api/entities/monitor/monitorModelMapDebug.js",
 				"../entities/accounting/accountingModelMap": "src/api/entities/accounting/accountingModelMapDebug.js",
+				"../entities/storage/storageModelMap": "src/api/entities/storage/storageModelMapDebug.js",
 			}
 			return imports[id]
 		}

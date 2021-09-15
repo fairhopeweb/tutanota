@@ -280,20 +280,30 @@ public class FileUtil {
 			con.setReadTimeout(HTTP_TIMEOUT);
 			con.setRequestMethod("PUT");
 			con.setDoInput(true);
+			con.setDoOutput(true);
 			con.setUseCaches(false);
 			con.setRequestProperty("Content-Type", "application/octet-stream");
 			con.setChunkedStreamingMode(4096); // mitigates OOM for large files (start uploading before the complete file is buffered)
 			addHeadersToRequest(con, headers);
 			con.connect();
 			IOUtils.copy(inputStream, con.getOutputStream());
-			ByteArrayOutputStream responseBodyStream = new ByteArrayOutputStream();
-			IOUtils.copy(con.getInputStream(), responseBodyStream);
+
+			int responseCode = con.getResponseCode();
+
 			JSONObject response = new JSONObject()
 					.put("statusCode", con.getResponseCode())
 					.put("errorId", con.getHeaderField("Error-Id")) // see ResourceConstants.ERROR_ID_HEADER
 					.put("precondition", con.getHeaderField("Precondition")) // see ResourceConstants.PRECONDITION_HEADER
-					.put("suspensionTime", con.getHeaderField("Retry-After"))
-					.put("responseBody", responseBodyStream.toByteArray());
+					.put("suspensionTime", con.getHeaderField("Retry-After"));
+
+
+			if (responseCode >= 200 && responseCode < 300) {
+				ByteArrayOutputStream responseBodyStream = new ByteArrayOutputStream();
+				IOUtils.copy(con.getInputStream(), responseBodyStream);
+				response.put("responseBody", bytesToBase64(responseBodyStream.toByteArray()));
+			}
+
+
 			if (!response.has("suspensionTime")) { // enters this block if "Retry-After" header is not set
 				response.put("suspensionTime", con.getHeaderField("Suspension-Time"));
 			}
@@ -403,7 +413,7 @@ public class FileUtil {
 		HashingInputStream hashingInputStream = new HashingInputStream(MessageDigest.getInstance("SHA-256"), inputStream);
 		List<JSONObject> blobs = new ArrayList<>();
 		for (int chunk = 0; chunk * maxBlobSize <= fileSize; chunk++) {
-			String tmpFilename = file.hashCode() + "." + chunk + ".blob";
+			String tmpFilename = Integer.toHexString(file.hashCode()) + "." + chunk + ".blob";
 			BoundedInputStream chunkedInputStream = new BoundedInputStream(hashingInputStream, maxBlobSize);
 			File tmpFile = writeFileToEncryptedDir(tmpFilename, chunkedInputStream);
 			byte[] hash = hashingInputStream.hash(); // resets the hash
