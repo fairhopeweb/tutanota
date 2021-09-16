@@ -95,43 +95,6 @@ static NSString * const FILES_ERROR_DOMAIN = @"tutanota_files";
 	});
 }
 
-
-- (void)uploadFileAtPath:(NSString * _Nonnull)filePath
-				   toUrl:(NSString * _Nonnull)urlString
-			 withHeaders:(NSDictionary<NSString *, NSString *> * _Nonnull)headers
-			  completion:(void (^ _Nonnull)(NSDictionary<NSString *, id> * _Nullable response, NSError * _Nullable error))completion {
-	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-		NSURL *url = [NSURL URLWithString:urlString];
-		NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-		[request setHTTPMethod:@"PUT"];
-		[request setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
-		[request setAllHTTPHeaderFields:headers];
-
-		NSURLSessionConfiguration * configuration = [NSURLSessionConfiguration ephemeralSessionConfiguration];	// Ephemeral sessions do not store any data to disk; all caches, credential stores, and so on are kept in RAM.
-		NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
-
-		NSURL *fileUrl = [TUTFileUtil urlFromPath:filePath];
-		NSURLSessionUploadTask *task = [session uploadTaskWithRequest:request
-															 fromFile:fileUrl
-													completionHandler:^(NSData * data, NSURLResponse * response, NSError *error) {
-														if (error) {
-															completion(nil, error);
-															return;
-														}
-														const NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
-            
-                                                        // response for upload: statusCode: number, errorId: ?string, precondition: ?string
-														NSMutableDictionary<NSString *, id> *responseDict = [NSMutableDictionary new];
-                                                        [TUTFileUtil addStatusCodeToResponseDict:responseDict from:httpResponse];
-                                                        [TUTFileUtil addErrorIdHeaderToResponseDict:responseDict from:httpResponse];
-                                                        [TUTFileUtil addPreconditionHeaderToResponseDict:responseDict from:httpResponse];
-                                                        [TUTFileUtil addSuspensionTimeHeaderToResponseDict:responseDict from:httpResponse];
-														completion(responseDict, nil);
-													}];
-		[task resume];
-	});
-}
-
 - (void)downloadFileFromUrl:(NSString * _Nonnull)urlString
 					forName:(NSString * _Nonnull)fileName
 				withHeaders:(NSDictionary<NSString *, NSString *> * _Nonnull)headers

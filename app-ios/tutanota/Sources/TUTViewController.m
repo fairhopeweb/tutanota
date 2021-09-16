@@ -51,6 +51,7 @@ typedef void(^VoidCallback)(void);
 @property (readonly, nonnull) TUTUserPreferenceFacade *userPreferences;
 @property (readonly, nonnull) TUTAlarmManager *alarmManager;
 @property (readonly, nonnull) ThemeManager *themeManager;
+@property (readonly, nonnull) BlobUtil *blobUtil;
 @property BOOL isDarkTheme;
 @end
 
@@ -66,6 +67,7 @@ alarmManager:(TUTAlarmManager *)alarmManager
 		_fileUtil = [[TUTFileUtil alloc] initWithViewController:self];
 		_contactsSource = [TUTContactsSource new];
     _themeManager = [ThemeManager new];
+    _blobUtil = [BlobUtil new];
 		_keyboardSize = 0;
 		_webViewInitialized = false;
 		_requestsBeforeInit = [NSMutableArray new];
@@ -200,7 +202,7 @@ alarmManager:(TUTAlarmManager *)alarmManager
 	} else if ([@"aesDecryptFile" isEqualToString:type]) {
 		[_crypto aesDecryptFileWithKey:arguments[0] atPath:arguments[1] completion:sendResponseBlock];
 	} else if([@"upload" isEqualToString:type]) {
-		[_fileUtil uploadFileAtPath:arguments[0] toUrl:arguments[1] withHeaders:arguments[2] completion:sendResponseBlock];
+		[_blobUtil uploadFileAtPath:arguments[0] toUrl:arguments[1] withHeaders:arguments[2] completion:sendResponseBlock];
 	} else if ([@"deleteFile" isEqualToString:type]) {
 		[_fileUtil deleteFileAtPath:arguments[0] completion:^{
 			sendResponseBlock(NSNull.null, nil);
@@ -210,8 +212,8 @@ alarmManager:(TUTAlarmManager *)alarmManager
 		sendResponseBlock(NSNull.null, nil);
 	} else if ([@"download" isEqualToString:type]) {
 		[_fileUtil downloadFileFromUrl:arguments[0]
-							   forName:arguments[1]
-						   withHeaders:arguments[2]
+							   forName:arguments[2]
+						   withHeaders:arguments[1]
 							completion:sendResponseBlock];
 	} else if ([@"open" isEqualToString:type]) {
 		[_fileUtil openFileAtPath:arguments[0] completion:^(NSError * _Nullable error) {
@@ -299,6 +301,11 @@ alarmManager:(TUTAlarmManager *)alarmManager
     // reapply the current theme in case the definition has changed
     [self applyTheme:_themeManager.currentTheme];
     sendResponseBlock(NSNull.null, nil);
+  } else if ([@"joinFiles" isEqualToString:type]) {
+    [self.blobUtil joinFilesWithOutputFileName:arguments[0] filePathsToJoin:arguments[1] callback:sendResponseBlock];
+  } else if ([@"splitFileIntoBlobs" isEqualToString:type]) {
+    NSNumber *maxBlobSize = arguments[1];
+    [self.blobUtil splitWithFileUri:arguments[0] maxBlobSize:maxBlobSize.intValue completion:sendResponseBlock];
 	} else {
 		let message = [NSString stringWithFormat:@"Unknown command: %@", type];
 		TUTLog(@"%@", message);

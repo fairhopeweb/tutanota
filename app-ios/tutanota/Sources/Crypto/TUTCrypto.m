@@ -23,6 +23,7 @@
 #import "TUTFileUtil.h"
 #import "TUTErrorFactory.h"
 #import "../Utils/TUTLog.h"
+#import "TUTBigNum.h"
 
 #import "Swiftier.h"
 
@@ -186,13 +187,13 @@ static NSInteger const RSA_KEY_LENGTH_IN_BITS = 2048;
 
 	const char *publicExponent = "65537";
 	BN_dec2bn(&rsaKey->e, publicExponent ); // public exponent <- 65537
-	[TUTCrypto toBIGNUM:rsaKey->n fromB64:modulus]; // public modulus <- modulus
-	[TUTCrypto toBIGNUM:rsaKey->d fromB64:privateExponent]; // private exponent <- privateExponent
-	[TUTCrypto toBIGNUM:rsaKey->p fromB64:primeP]; // secret prime factor <- primeP
-	[TUTCrypto toBIGNUM:rsaKey->q fromB64:primeQ ]; // secret prime factor <- primeQ
-	[TUTCrypto toBIGNUM:rsaKey->dmp1 fromB64:primeExponentP]; // d mod (p-1) <- primeExponentP
-	[TUTCrypto toBIGNUM:rsaKey->dmq1 fromB64:primeExponentQ]; // d mod (q-1) <- primeExponentQ
-	[TUTCrypto toBIGNUM:rsaKey->iqmp fromB64:crtCoefficient]; // q^-1 mod p <- crtCoefficient
+	[TUTBigNum toBIGNUM:rsaKey->n fromB64:modulus]; // public modulus <- modulus
+	[TUTBigNum toBIGNUM:rsaKey->d fromB64:privateExponent]; // private exponent <- privateExponent
+	[TUTBigNum toBIGNUM:rsaKey->p fromB64:primeP]; // secret prime factor <- primeP
+	[TUTBigNum toBIGNUM:rsaKey->q fromB64:primeQ ]; // secret prime factor <- primeQ
+	[TUTBigNum toBIGNUM:rsaKey->dmp1 fromB64:primeExponentP]; // d mod (p-1) <- primeExponentP
+	[TUTBigNum toBIGNUM:rsaKey->dmq1 fromB64:primeExponentQ]; // d mod (q-1) <- primeExponentQ
+	[TUTBigNum toBIGNUM:rsaKey->iqmp fromB64:crtCoefficient]; // q^-1 mod p <- crtCoefficient
 	return rsaKey;
 }
 
@@ -206,45 +207,27 @@ static NSInteger const RSA_KEY_LENGTH_IN_BITS = 2048;
 
 	const char *publicExponent = "65537";
 	BN_dec2bn(&rsaKey->e, publicExponent ); // public exponent <- 65537
-	[TUTCrypto toBIGNUM:rsaKey->n fromB64:modulus]; // public modulus <- modulus
+	[TUTBigNum toBIGNUM:rsaKey->n fromB64:modulus]; // public modulus <- modulus
 	return rsaKey;
 }
-
-
-
-+ (void)toBIGNUM:(BIGNUM *) number fromB64:(NSString*)value{
-	NSData *valueData =  [[NSData alloc] initWithBase64EncodedString:value options: 0];
-	BN_bin2bn((unsigned char *) [valueData bytes], (int) [valueData length], number);
-}
-
-+ (NSString *)toB64:(BIGNUM*)number{
-	int numBytes = BN_num_bytes(number);
-	NSMutableData *nsData = [NSMutableData dataWithLength:numBytes];
-	BN_bn2bin(number, [nsData mutableBytes]);
-	return [nsData base64EncodedStringWithOptions:0];
-}
-
-
-
-
 
 + (NSMutableDictionary *)createRSAKeyPair:(RSA*)key keyLength:(NSNumber*)keyLength version:(NSNumber*)version {
 	NSMutableDictionary *publicKey = [NSMutableDictionary new];
 	[publicKey setObject: version forKey: @"version"];
 	[publicKey setObject: keyLength forKey: @"keyLength"];
-	[publicKey setObject: [TUTCrypto toB64:key->n] forKey: @"modulus"];
+	[publicKey setObject: [TUTBigNum toB64:key->n] forKey: @"modulus"];
 
 	NSMutableDictionary *privateKey = [NSMutableDictionary new];
 	[privateKey setObject: version forKey: @"version"];
 	[privateKey setObject: keyLength forKey: @"keyLength"];
-	[privateKey setObject: [TUTCrypto toB64:key->n]  forKey: @"modulus"];
+	[privateKey setObject: [TUTBigNum toB64:key->n]  forKey: @"modulus"];
 
-	[privateKey setObject: [TUTCrypto toB64:key->d] forKey: @"privateExponent"];
-	[privateKey setObject: [TUTCrypto toB64:key->p] forKey: @"primeP"];
-	[privateKey setObject: [TUTCrypto toB64:key->q] forKey: @"primeQ"];
-	[privateKey setObject: [TUTCrypto toB64:key->dmp1] forKey: @"primeExponentP"];
-	[privateKey setObject: [TUTCrypto toB64:key->dmq1] forKey: @"primeExponentQ"];
-	[privateKey setObject: [TUTCrypto toB64:key->iqmp] forKey: @"crtCoefficient"];
+	[privateKey setObject: [TUTBigNum toB64:key->d] forKey: @"privateExponent"];
+	[privateKey setObject: [TUTBigNum toB64:key->p] forKey: @"primeP"];
+	[privateKey setObject: [TUTBigNum toB64:key->q] forKey: @"primeQ"];
+	[privateKey setObject: [TUTBigNum toB64:key->dmp1] forKey: @"primeExponentP"];
+	[privateKey setObject: [TUTBigNum toB64:key->dmq1] forKey: @"primeExponentQ"];
+	[privateKey setObject: [TUTBigNum toB64:key->iqmp] forKey: @"crtCoefficient"];
 
 	NSMutableDictionary *keyPair= [NSMutableDictionary new];
 	[keyPair setObject: publicKey forKey: @"publicKey"];

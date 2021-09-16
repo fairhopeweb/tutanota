@@ -5,6 +5,9 @@
 //  Created by Tutao GmbH on 20.10.16.
 //  Copyright © 2016 Tutao GmbH. All rights reserved.
 //
+
+NS_ASSUME_NONNULL_BEGIN
+
 @interface TUTEncodingConverter : NSObject
 
 + (NSData*)hexToBytes:(NSString*)hex;
@@ -16,3 +19,4 @@
 
 @end
 
+NS_ASSUME_NONNULL_END

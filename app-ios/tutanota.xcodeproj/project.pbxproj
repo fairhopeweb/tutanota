@@ -119,6 +119,12 @@
 		3D652B5820F8DC1600DF9962 /* build in Resources */ = {isa = PBXBuildFile; fileRef = 3D652B5720F8DC1500DF9962 /* build */; };
 		3D69F033212D4A5B00D52BF7 /* TUTFontIconFactory.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D69F032212D4A5B00D52BF7 /* TUTFontIconFactory.m */; };
 		3D6A0AEA212C1701001CD791 /* CompatibilityTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D6A0AE9212C1701001CD791 /* CompatibilityTest.m */; settings = {COMPILER_FLAGS = "-Itutanota/include"; }; };
+		3D6A237126F34989007C56EB /* BlobUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6A237026F34989007C56EB /* BlobUtil.swift */; };
+		3D6A237226F34989007C56EB /* BlobUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6A237026F34989007C56EB /* BlobUtil.swift */; };
+		3D6A237326F34989007C56EB /* BlobUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6A237026F34989007C56EB /* BlobUtil.swift */; };
+		3D6A237626F37658007C56EB /* TUTBigNum.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D6A237526F37658007C56EB /* TUTBigNum.m */; };
+		3D6A237726F37658007C56EB /* TUTBigNum.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D6A237526F37658007C56EB /* TUTBigNum.m */; };
+		3D6A237826F37658007C56EB /* TUTBigNum.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D6A237526F37658007C56EB /* TUTBigNum.m */; };
 		3D6C6D0422AF9BD100289576 /* TUTSseInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D6C6D0322AF9BD100289576 /* TUTSseInfo.m */; };
 		3D6C6D0822B7709A00289576 /* TUTKeychainManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D6C6D0722B7709A00289576 /* TUTKeychainManager.m */; };
 		3D74536721089F4800B16F2E /* TUTErrorFactory.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D74536621089F4800B16F2E /* TUTErrorFactory.m */; };
@@ -256,6 +262,9 @@
 		3D69F031212D4A5B00D52BF7 /* TUTFontIconFactory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUTFontIconFactory.h; sourceTree = "<group>"; };
 		3D69F032212D4A5B00D52BF7 /* TUTFontIconFactory.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUTFontIconFactory.m; sourceTree = "<group>"; };
 		3D6A0AE9212C1701001CD791 /* CompatibilityTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CompatibilityTest.m; sourceTree = "<group>"; };
+		3D6A237026F34989007C56EB /* BlobUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobUtil.swift; sourceTree = "<group>"; };
+		3D6A237426F37658007C56EB /* TUTBigNum.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUTBigNum.h; sourceTree = "<group>"; };
+		3D6A237526F37658007C56EB /* TUTBigNum.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUTBigNum.m; sourceTree = "<group>"; };
 		3D6C6D0222AF9BD100289576 /* TUTSseInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUTSseInfo.h; sourceTree = "<group>"; };
 		3D6C6D0322AF9BD100289576 /* TUTSseInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUTSseInfo.m; sourceTree = "<group>"; };
 		3D6C6D0622B7709A00289576 /* TUTKeychainManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUTKeychainManager.h; sourceTree = "<group>"; };
@@ -456,6 +465,7 @@
 		3D74536221089D5700B16F2E /* Crypto */ = {
 			isa = PBXGroup;
 			children = (
+				3DF3055B253853C300E942A8 /* TUTCrypto.h */,
 				3DE7B3422135855F003415BE /* TUTSubKeys.h */,
 				3DE7B3432135855F003415BE /* TUTSubKeys.m */,
 				3D891F1D2105BB200031E528 /* rsa_oaep_sha256.h */,
@@ -463,6 +473,8 @@
 				3D891F032105B12F0031E528 /* TUTAes128Facade.m */,
 				3D891F002105B12E0031E528 /* TUTCrypto.m */,
 				3D891EFD2105B12E0031E528 /* rsa_oaep_sha256.c */,
+				3D6A237426F37658007C56EB /* TUTBigNum.h */,
+				3D6A237526F37658007C56EB /* TUTBigNum.m */,
 			);
 			path = Crypto;
 			sourceTree = "<group>";
@@ -470,12 +482,12 @@
 		3D74536321089D8100B16F2E /* Files */ = {
 			isa = PBXGroup;
 			children = (
-				3DF3055B253853C300E942A8 /* TUTCrypto.h */,
 				3D891F242105BB210031E528 /* TUTFileUtil.h */,
 				3D891EFE2105B12E0031E528 /* TUTFileUtil.m */,
 				3D891F1E2105BB200031E528 /* TUTFileViewer.h */,
 				3D891F042105B12F0031E528 /* TUTFileViewer.m */,
 				3D378EE62536F51F0001F1F3 /* FileChooser.swift */,
+				3D6A237026F34989007C56EB /* BlobUtil.swift */,
 			);
 			path = Files;
 			sourceTree = "<group>";
@@ -1491,6 +1503,7 @@
 				3D378EF02536F79A0001F1F3 /* AsyncBlockOperation.m in Sources */,
 				3D378EF12536F79A0001F1F3 /* TUTAlarmNotification.m in Sources */,
 				3D378EF22536F79A0001F1F3 /* FileChooser.swift in Sources */,
+				3D6A237826F37658007C56EB /* TUTBigNum.m in Sources */,
 				3D378EF32536F79A0001F1F3 /* TUTViewController.m in Sources */,
 				3D378EF42536F79A0001F1F3 /* TUTSseInfo.m in Sources */,
 				3D378EF52536F79A0001F1F3 /* TUTUserPreferenceFacade.m in Sources */,
@@ -1506,6 +1519,7 @@
 				3D378F002536F79A0001F1F3 /* TUTUtils.m in Sources */,
 				3D378F012536F79A0001F1F3 /* TUTErrorFactory.m in Sources */,
 				3D378F022536F79A0001F1F3 /* TUTEncodingConverter.m in Sources */,
+				3D6A237326F34989007C56EB /* BlobUtil.swift in Sources */,
 				3DC299FE2673668000E1E79F /* QueryUtils.swift in Sources */,
 				3D378F032536F79A0001F1F3 /* TUTAes128Facade.m in Sources */,
 				3DC299FB267358AF00E1E79F /* ThemeManager.swift in Sources */,
@@ -1530,6 +1544,7 @@
 				3D2DE2C823FC387700FFB95B /* AsyncBlockOperation.m in Sources */,
 				3D57BEC222B79C4D00205B1B /* TUTAlarmNotification.m in Sources */,
 				3D378EE72536F51F0001F1F3 /* FileChooser.swift in Sources */,
+				3D6A237626F37658007C56EB /* TUTBigNum.m in Sources */,
 				3DD4A08B20F8C6240086EB36 /* TUTViewController.m in Sources */,
 				3D6C6D0422AF9BD100289576 /* TUTSseInfo.m in Sources */,
 				3D3697D722AA8CE9007F0A83 /* TUTUserPreferenceFacade.m in Sources */,
@@ -1545,6 +1560,7 @@
 				3DB9A20E22BA5C23004EA08F /* TUTUtils.m in Sources */,
 				3D74536721089F4800B16F2E /* TUTErrorFactory.m in Sources */,
 				3D891F0D2105B12F0031E528 /* TUTEncodingConverter.m in Sources */,
+				3D6A237126F34989007C56EB /* BlobUtil.swift in Sources */,
 				3DC299FD2673668000E1E79F /* QueryUtils.swift in Sources */,
 				3D891F0E2105B12F0031E528 /* TUTAes128Facade.m in Sources */,
 				3DC299FA267358AF00E1E79F /* ThemeManager.swift in Sources */,
@@ -1567,7 +1583,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				3D6A0AEA212C1701001CD791 /* CompatibilityTest.m in Sources */,
+				3D6A237226F34989007C56EB /* BlobUtil.swift in Sources */,
 				3D63A0E5233D0C1400D05259 /* TUTLogTest.m in Sources */,
+				3D6A237726F37658007C56EB /* TUTBigNum.m in Sources */,
 				3DD7A23522C5FD7500876B85 /* TUTAlarmModelTest.m in Sources */,
 				3DAA23A9267A208200219051 /* UIColorExtensionsTest.swift in Sources */,
 			);
@@ -2112,6 +2130,7 @@
 				HEADER_SEARCH_PATHS = (
 					"\"$(TARGET_BUILD_DIR)/usr/local/lib/include\"",
 					"\"$(BUILT_PRODUCTS_DIR)\"",
+					"\"${PROJECT_DIR}/tutanota/include\"/**",
 				);
 				INFOPLIST_FILE = "tutanota copy2-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2295,6 +2314,7 @@
 				HEADER_SEARCH_PATHS = (
 					"\"$(TARGET_BUILD_DIR)/usr/local/lib/include\"",
 					"\"$(BUILT_PRODUCTS_DIR)\"",
+					"\"${PROJECT_DIR}/tutanota/include\"/**",
 				);
 				INFOPLIST_FILE = tutanota/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
