@@ -131,7 +131,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 					return this
 				},
 				end: function () {
-					this.callbacks['finish']()
+					this.callbacks['close']()
 				}
 			}, statics: {}
 		})
@@ -271,7 +271,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 		await delay(5)
 		mocks.netMock.ClientRequest.mockedInstances[0].callbacks['response'](res)
 		const ws = WriteStream.mockedInstances[0]
-		ws.callbacks['finish']()
+		ws.callbacks['close']()
 		await dlPromise
 		o(mocks.netMock.request.callCount).equals(1)
 		o(mocks.netMock.request.args.length).equals(2)
@@ -283,9 +283,8 @@ o.spec("DesktopDownloadManagerTest", function () {
 		})
 		o(mocks.netMock.ClientRequest.mockedInstances.length).equals(1)
 		o(mocks.fsMock.createWriteStream.callCount).equals(1)
-		o(mocks.fsMock.createWriteStream.args.length).equals(2)
+		o(mocks.fsMock.createWriteStream.args.length).equals(1)
 		o(mocks.fsMock.createWriteStream.args[0]).equals('/some/path/tutanota/download/nativelyDownloadedFile')
-		o(mocks.fsMock.createWriteStream.args[1]).deepEquals({emitClose: true})
 
 		o(res.pipe.callCount).equals(1)
 		o(res.pipe.args[0]).deepEquals(ws)
@@ -300,11 +299,12 @@ o.spec("DesktopDownloadManagerTest", function () {
 		await delay(5)
 		mocks.netMock.ClientRequest.mockedInstances[0].callbacks['response'](res)
 		const ws = WriteStream.mockedInstances[0]
-		ws.callbacks['finish']()
+		ws.callbacks['close']()
 		return dlPromise
 			.then(() => o("").equals(3))
 			.catch(e => {
-				o(e).equals(404)
+				o(e instanceof Error).equals(true)
+				o(e.message).equals('404')
 				o(mocks.fsMock.createWriteStream.callCount).equals(1)
 				o(ws.on.callCount).equals(2)
 				o(ws.removeAllListeners.callCount).equals(2)
