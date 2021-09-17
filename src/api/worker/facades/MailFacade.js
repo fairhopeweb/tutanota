@@ -143,7 +143,9 @@ export class MailFacade {
 			ccRecipients,
 			bccRecipients,
 			replyTos,
-			addedAttachments: await this._createAddedAttachments(attachments, [], mailGroupKey)
+			addedAttachments: attachments
+				? await this._createAddedAttachments(attachments, [], mailGroupKey)
+				: []
 		})
 		const createDraftReturn = await serviceRequest(TutanotaService.DraftService, HttpMethod.POST, service, DraftCreateReturnTypeRef, null, sk)
 		return this._entity.load(MailTypeRef, createDraftReturn.draft)
@@ -189,8 +191,9 @@ export class MailFacade {
 			bccRecipients,
 			replyTos: draft.replyTos,
 			removedAttachments: this._getRemovedAttachments(attachments, draft.attachments),
-			addedAttachments: await this._createAddedAttachments(attachments, draft.attachments, mailGroupKey),
-
+			addedAttachments: attachments
+				? await this._createAddedAttachments(attachments, draft.attachments, mailGroupKey)
+				: [],
 		})
 
 		this._deferredDraftId = draft._id
@@ -225,52 +228,35 @@ export class MailFacade {
 	/**
 	 * Uploads the given data files or sets the file if it is already existing files (e.g. forwarded files) and returns all DraftAttachments
 	 */
-	_createAddedAttachments(
-		providedFiles: ?Attachments,
+	async _createAddedAttachments(
+		providedFiles: Attachments,
 		existingFileIds: $ReadOnlyArray<IdTuple>,
 		mailGroupKey: Aes128Key
 	): Promise<DraftAttachment[]> {
-		if (providedFiles) {
-			return promiseMap(providedFiles, providedFile => {
-				// check if this is a new attachment or an existing one
-				if (providedFile._type === "DataFile") {
-					// user added attachment on the web
-					const fileSessionKey = aes128RandomKey()
-					const dataFile = downcast<DataFile>(providedFile)
-					return this._file.uploadFileBlobData(dataFile, fileSessionKey).then(fileDataId => {
-						return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, dataFile, mailGroupKey)
-					})
-				} else if (providedFile._type === "FileReference") {
-					// "usually" attaching a file on a native implementation
-					const fileSessionKey = aes128RandomKey()
-					const fileRef = downcast<FileReference>(providedFile)
-					return this._file.uploadFileBlobDataNative(fileRef, fileSessionKey).then(fileDataId => {
-						return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, fileRef, mailGroupKey)
-					})
-				} else if (!containsId(existingFileIds, getLetId(providedFile))) {
-					// forwarded attachment which was not in the draft before
-					return resolveSessionKey(FileTypeModel, providedFile).then(fileSessionKey => {
-						const attachment = createDraftAttachment();
-						attachment.existingFile = getLetId(providedFile)
-						attachment.ownerEncFileSessionKey = encryptKey(mailGroupKey, neverNull(fileSessionKey))
-						return attachment
-					})
-				} else {
-					return null
-				}
-			}) // disable concurrent file upload to avoid timeout because of missing progress events on Firefox.
-				.then((attachments) => attachments.filter(Boolean))
-				.then((it) => {
-					// only delete the temporary files after all attachments have been uploaded
-					if (isApp()) {
-						fileApp.clearFileData()
-						       .catch((e) => console.warn("Failed to clear files", e))
-					}
-					return it
-				})
-		} else {
-			return Promise.resolve([])
+		const attachments = await promiseMap(providedFiles, async providedFile => {
+			if (providedFile._type === "FileReference" || providedFile._type === "DataFile") {
+				// new attachment
+				const file = downcast<FileReference | DataFile>(providedFile)
+				const fileSessionKey = aes128RandomKey()
+				const fileDataId = await this._file.uploadFile(file, fileSessionKey)
+				return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, file, mailGroupKey)
+
+			} else if (!containsId(existingFileIds, getLetId(providedFile))) {
+				// forwarded attachment which was not in the draft before
+				const fileSessionKey = await resolveSessionKey(FileTypeModel, providedFile)
+				const attachment = createDraftAttachment();
+				attachment.existingFile = getLetId(providedFile)
+				attachment.ownerEncFileSessionKey = encryptKey(mailGroupKey, neverNull(fileSessionKey))
+				return attachment
+			}
+		}, {concurrency: 1}) // disable concurrent file upload to avoid timeout because of missing progress events on Firefox.
+
+		// only delete the temporary files after all attachments have been uploaded
+		if (isApp()) {
+			fileApp.clearFileData()
+			       .catch((e) => console.warn("Failed to clear files", e))
 		}
+		return attachments.filter(Boolean)
 	}
 
 	createAndEncryptDraftAttachment(fileDataId: Id, fileSessionKey: Aes128Key, providedFile: DataFile | FileReference, mailGroupKey: Aes128Key): DraftAttachment {

@@ -1,6 +1,7 @@
 // @flow
 import type {FileDataDataGet} from "../../entities/tutanota/FileDataDataGet"
 import {_TypeModel as FileDataDataGetTypeModel, createFileDataDataGet} from "../../entities/tutanota/FileDataDataGet"
+import {_TypeModel as FileDataDataReturnTypeModel} from "../../entities/tutanota/FileDataDataReturn"
 import {addParamsToUrl, isSuspensionResponse, RestClient} from "../rest/RestClient"
 import {encryptAndMapToLiteral, encryptBytes, resolveSessionKey} from "../crypto/CryptoFacade"
 import {aes128Decrypt} from "../crypto/Aes"
@@ -15,7 +16,7 @@ import {random} from "../crypto/Randomizer"
 import {HttpMethod, MediaType, resolveTypeReference} from "../../common/EntityFunctions"
 import {assertWorkerOrNode, getHttpOrigin, isApp, isDesktop} from "../../common/Env"
 import {aesDecryptFile, aesEncryptFile} from "../../../native/worker/AesApp"
-import {handleRestError} from "../../common/error/RestError"
+import {handleRestError, PreconditionFailedError} from "../../common/error/RestError"
 import type {NativeDownloadResult} from "../../../native/common/FileApp"
 import {fileApp, uriToFileRef} from "../../../native/common/FileApp"
 import {convertToDataFile} from "../../common/DataFile"
@@ -46,6 +47,7 @@ import type {TargetServer} from "../../entities/sys/TargetServer"
 import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {getRestPath} from "../../entities/ServiceUtils"
 import {promiseMap} from "../../common/utils/PromiseUtils"
+import {FileDataReturnPostTypeRef} from "../../entities/tutanota/FileDataReturnPost"
 
 assertWorkerOrNode()
 
@@ -333,7 +335,36 @@ export class FileFacade {
 	//////////////////////////////////////////////////
 	// ↓↓↓ Upload ↓↓↓
 
-	async uploadFileBlobData(file: DataFile, sessionKey: Aes128Key): Promise<Id> {
+	async uploadFile(file: DataFile | FileReference, sessionKey: Aes128Key): Promise<Id> {
+		switch (file._type) {
+			case "DataFile":
+				// user added attachment on the web
+				return this._handleMigration(() => this._uploadFileBlockData(file, sessionKey), () => this._uploadFileBlobData(file, sessionKey))
+			case "FileReference":
+				// "usually" attaching a file on a native implementation
+				return this._handleMigration(() => this._uploadFileBlockDataNative(file, sessionKey), () => this._uploadFileBlobDataNative(file, sessionKey))
+			default:
+				throw new ProgrammingError("Can only upload DataFile or FileReference")
+		}
+	}
+
+	// Migrate to blobs when PreconditionFailedError returned by the server
+	async _handleMigration(
+		blockFunction: () => Promise<Id>,
+		blobFunction: () => Promise<Id>
+	): Promise<Id> {
+		try {
+			return await blockFunction()
+		} catch (e) {
+			if (e instanceof PreconditionFailedError && e.data === "storage.blob_migrate_enabled") {
+				return await blobFunction()
+			} else {
+				throw e
+			}
+		}
+	}
+
+	async _uploadFileBlobData(file: DataFile, sessionKey: Aes128Key): Promise<Id> {
 		const encryptor: FileEncryptor<Uint8Array> = async (key, data: Uint8Array) => encryptBytes(key, data)
 
 		const splitter: BlobSplitter<Uint8Array> = async data => splitUint8ArrayInChunks(MAX_BLOB_SIZE_BYTES, data).map((blob: Uint8Array) => ({
@@ -347,7 +378,7 @@ export class FileFacade {
 		return this._uploadFileBlobDataWithUploader(file.data, file.data.byteLength, sessionKey, encryptor, splitter, uploader)
 	}
 
-	async uploadFileBlobDataNative(file: FileReference, sessionKey: Aes128Key): Promise<Id> {
+	async _uploadFileBlobDataNative(file: FileReference, sessionKey: Aes128Key): Promise<Id> {
 		const encryptor: FileEncryptor<FileReference> = async (key, fileReference) => {
 			const {uri} = await aesEncryptFile(key, fileReference.location, random.generateRandomData(16))
 			return uriToFileRef(uri)
@@ -443,5 +474,57 @@ export class FileFacade {
 		})
 		const {blobAccessInfo} = await serviceRequest(StorageService.BlobAccessTokenService, HttpMethod.POST, tokenRequest, BlobAccessTokenReturnTypeRef)
 		return blobAccessInfo
+	}
+
+
+	/**
+	 * Does not cleanup uploaded files. This is a responsibility of the caller
+	 */
+	async _uploadFileBlockDataNative(fileReference: FileReference, sessionKey: Aes128Key): Promise<Id> {
+		if (this._suspensionHandler.isSuspended()) {
+			return this._suspensionHandler.deferRequest(() => this._uploadFileBlockDataNative(fileReference, sessionKey))
+		}
+		const encryptedFileInfo = await aesEncryptFile(sessionKey, fileReference.location, random.generateRandomData(16))
+		const fileData = createFileDataDataPost()
+		fileData.size = encryptedFileInfo.unencSize.toString()
+		fileData.group = this._login.getGroupId(GroupType.Mail)
+
+
+		const fileDataPostReturn = await serviceRequest(TutanotaService.FileDataService, HttpMethod.POST, fileData, FileDataReturnPostTypeRef, null, sessionKey)
+		const fileDataId = fileDataPostReturn.fileData
+
+		const headers = this._login.createAuthHeaders()
+		headers['v'] = FileDataDataReturnTypeModel.version
+
+		const url = addParamsToUrl(new URL(getRestPath(TutanotaService.FileDataService), getHttpOrigin()), {fileDataId})
+		const {
+			statusCode,
+			errorId,
+			precondition,
+			suspensionTime,
+		} = await fileApp.upload(encryptedFileInfo.uri, url.toString(), headers)
+
+		if (statusCode === 200) {
+			return fileDataId;
+		} else if (isSuspensionResponse(statusCode, suspensionTime)) {
+			this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
+			return this._suspensionHandler.deferRequest(() => this._uploadFileBlockDataNative(fileReference, sessionKey))
+		} else {
+			throw handleRestError(statusCode, ` | PUT ${url.toString()} failed to natively upload attachment`, errorId, precondition)
+		}
+	}
+
+	async _uploadFileBlockData(dataFile: DataFile, sessionKey: Aes128Key): Promise<Id> {
+		let encryptedData = encryptBytes(sessionKey, dataFile.data)
+		let fileData = createFileDataDataPost()
+		fileData.size = dataFile.data.byteLength.toString()
+		fileData.group = this._login.getGroupId(GroupType.Mail) // currently only used for attachments
+		let fileDataPostReturn = await serviceRequest(TutanotaService.FileDataService, HttpMethod.POST, fileData, FileDataReturnPostTypeRef, null, sessionKey)
+		let fileDataId = fileDataPostReturn.fileData
+		let headers = this._login.createAuthHeaders()
+		headers['v'] = FileDataDataReturnTypeModel.version
+		await this._restClient.request(getRestPath(TutanotaService.FileDataService), HttpMethod.PUT,
+			{fileDataId: fileDataId}, headers, encryptedData, MediaType.Binary)
+		return fileDataId
 	}
 }
