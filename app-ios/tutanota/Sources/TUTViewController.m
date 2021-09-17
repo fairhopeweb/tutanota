@@ -17,7 +17,6 @@
 #import "TUTContactsSource.h"
 #import "TUTEncodingConverter.h"
 #import "TUTUserPreferenceFacade.h"
-#import "Keychain/TUTKeychainManager.h"
 #import "TUTLog.h"
 #import "Utils/TUTLog.h"
 #import "Files/TUTFileUtil.h"
@@ -47,7 +46,7 @@ typedef void(^VoidCallback)(void);
 @property (nullable) NSString *pushTokenRequestId;
 @property BOOL webViewInitialized;
 @property (readonly, nonnull) NSMutableArray<VoidCallback> *requestsBeforeInit;
-@property (readonly, nonnull) TUTKeychainManager *keychainManager;
+@property (readonly, nonnull) KeychainManager *keychainManager;
 @property (readonly, nonnull) TUTUserPreferenceFacade *userPreferences;
 @property (readonly, nonnull) TUTAlarmManager *alarmManager;
 @property (readonly, nonnull) ThemeManager *themeManager;
@@ -69,7 +68,7 @@ alarmManager:(TUTAlarmManager *)alarmManager
 		_keyboardSize = 0;
 		_webViewInitialized = false;
 		_requestsBeforeInit = [NSMutableArray new];
-        _keychainManager = [TUTKeychainManager new];
+        _keychainManager = [KeychainManager new];
         _userPreferences = preferenceFacade;
         _alarmManager = alarmManager;
         _isDarkTheme = NO;
@@ -285,7 +284,7 @@ alarmManager:(TUTAlarmManager *)alarmManager
       sendResponseBlock(NSNull.null, error);
     }];
   } else if ([@"getSelectedTheme" isEqualToString:type]) {
-      sendResponseBlock(_themeManager.selectedThemeId, nil);
+    sendResponseBlock(_themeManager.selectedThemeId, nil);
   } else if ([@"setSelectedTheme" isEqualToString:type]) {
     NSString *themeId = arguments[0];
     _themeManager.selectedThemeId = themeId;

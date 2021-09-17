@@ -1,11 +1,9 @@
 //
 //  TUTCrypto.h
-//  Tutanota plugin
 //
 //  Created by Tutao GmbH on 24.09.14.
 //
 //
-#import <openssl/ossl_typ.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -33,9 +31,6 @@ NS_ASSUME_NONNULL_BEGIN
 				   completion:(void(^)(NSString * _Nullable filePath, NSError * _Nullable error))completion;
 
 + (NSData * )sha256:(NSData *)data;
-
-+ (NSString * )toB64:(BIGNUM *)number;
-+ (void)toBIGNUM:(BIGNUM *)number fromB64:(NSString *)value;
 
 @end
 

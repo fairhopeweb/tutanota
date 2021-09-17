@@ -12,10 +12,10 @@
 #import "Utils/TUTUtils.h"
 #import "Utils/TUTLog.h"
 #import "Utils/AsyncBlockOperation.h"
-#import "Keychain/TUTKeychainManager.h"
 #import "Alarms/TUTMissedNotification.h"
 #import "Alarms/TUTAlarmModel.h"
 #import "Crypto/TUTAes128Facade.h"
+#import "tutanota-Swift.h"
 
 #import "Swiftier.h"
 #import "PSPDFFastEnumeration.h"
@@ -43,7 +43,7 @@ static const int TOO_MANY_REQUESTS_HTTP_CODE = 429;
 static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
 
 @interface TUTAlarmManager ()
-@property (nonnull, readonly) TUTKeychainManager *keychainManager;
+@property (nonnull, readonly) KeychainManager *keychainManager;
 @property (nonnull, readonly) TUTUserPreferenceFacade *userPreference;
 @property (nonnull, readonly) NSOperationQueue *fetchQueue;
 @end
@@ -54,7 +54,7 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
     
     self = [super init];
     if (self) {
-        _keychainManager = [TUTKeychainManager new];
+        _keychainManager = [KeychainManager new];
         _userPreference = userPref;
         _fetchQueue = [NSOperationQueue new];
         // important: we don't want any concurrency for this queue
@@ -188,7 +188,7 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
     [self unscheduleAllAlarmsForUserId:nil];
     [_userPreference clear];
     NSError *error;
-    [_keychainManager removePushIdentifierKeys:&error];
+    [_keychainManager removePushIdentifierKeysAndReturnError:&error];
     if (error) {
         TUTLog(@"Failed to remove pushIdentifier keys %@", error);
     }
@@ -360,7 +360,7 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
     NSError *error;
     foreach(notificationSessionKey, alarmNotification.notificationSessionKeys) {
         error = nil;
-        let pushIdentifierSessionSessionKey = [_keychainManager getKeyWithError:notificationSessionKey.pushIdentifier.elementId error:&error];
+        let pushIdentifierSessionSessionKey = [_keychainManager getKeyWithKeyId:notificationSessionKey.pushIdentifier.elementId error:&error];
         if (!error && pushIdentifierSessionSessionKey) {
             var encSessionKey = [TUTEncodingConverter base64ToBytes:notificationSessionKey.pushIdentifierSessionEncSessionKey];
             var sessionKey = [TUTAes128Facade decryptKey:encSessionKey
