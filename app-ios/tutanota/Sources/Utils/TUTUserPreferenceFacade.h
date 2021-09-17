@@ -19,7 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)storeSseInfoWithPushIdentifier:(NSString *)pushIdentifier userId:(NSString *)userId sseOrign:(NSString *)sseOrigin;
 - (void)removeUser:(NSString *)userId;
 - (void)storeAlarms:(NSArray<TUTAlarmNotification *> *)alarmNotifications;
-- (NSMutableArray<TUTAlarmNotification *> *) alarms;
+- (NSArray<TUTAlarmNotification *> *) alarms;
 - (void)clear;
 
 @property (nonatomic, nullable) NSString *lastProcessedNotificationId;

@@ -55,11 +55,11 @@ NSString *const USER_IDS_KEY = @"userIds";
     _dict[SSE_ORIGIN_KEY] = sseOrigin;
 }
 
-- (NSArray *)userIds {
+- (NSArray<NSString *> *)userIds {
     return ((NSArray *) _dict[USER_IDS_KEY]).copy;
 }
 
-- (void)setUserIds:(NSArray *)userIds {
+- (void)setUserIds:(NSArray<NSString *> *)userIds {
     _dict[USER_IDS_KEY] = userIds;
 }
 

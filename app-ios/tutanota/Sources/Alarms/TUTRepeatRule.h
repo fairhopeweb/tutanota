@@ -34,7 +34,7 @@ typedef NS_ENUM(NSInteger, TUTRepeatEndType) {
 
 -(TUTRepeatPeriod) getFrequencyDec:(NSData *)sessionKey error:(NSError**) error;
 -(NSInteger) getIntervalDec:(NSData *)sessionKey error:(NSError**) error;
--(NSString *) getTimezoneDec:(NSData *)sessionKey error:(NSError**) error;
+-(NSString *_Nullable) getTimezoneDec:(NSData *)sessionKey error:(NSError**) error;
 -(TUTRepeatEndType) getEndTypeDec:(NSData *)sessionKey error:(NSError**) error;
 -(long long) getEndValueDec:(NSData *)sessionKey error:(NSError**) error;
 

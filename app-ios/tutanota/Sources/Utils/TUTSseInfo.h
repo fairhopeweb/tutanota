@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface TUTSseInfo : NSObject
 @property NSString *pushIdentifier;
 @property NSString *sseOrigin;
-@property NSArray *userIds;
+@property NSArray<NSString *> *userIds;
 
 - (instancetype)initWithDict:(NSDictionary<NSString *, id> *)dict;
 - (NSDictionary<NSString *, id> *)toDict;

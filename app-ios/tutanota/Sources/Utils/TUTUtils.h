@@ -10,6 +10,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+extern const int SYS_MODEL_VERSION;
+
 @interface TUTUtils : NSObject
 + (NSString *)translate:(NSString *)key default:(NSString*)defaultValue;
 + (void)addSystemModelHeadersTo:(NSMutableDictionary<NSString *, NSString *> *)target;

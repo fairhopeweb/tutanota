@@ -37,14 +37,8 @@ class KeychainManager : NSObject {
   }
   
   // We can't throw because we return optional and call it from objc
-  @objc
-  func getKey(keyId: String, error errorPointer: ErrorPointer) -> Data? {
-    do {
-      return try self.getKeyImpl(keyId: keyId)
-    } catch {
-      errorPointer?.pointee = error as NSError
-      return nil
-    }
+  func getKey(keyId: String) throws -> Data? {
+    try self.getKeyImpl(keyId: keyId)
   }
   
   @objc

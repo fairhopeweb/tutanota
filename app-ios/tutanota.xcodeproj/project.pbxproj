@@ -11,6 +11,8 @@
 		3D0EB1F726F489AD002E5102 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EB1F526F48854002E5102 /* KeychainManager.swift */; };
 		3D0EB1F926F49E36002E5102 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EB1F826F49E36002E5102 /* AppDelegate.swift */; };
 		3D0EB1FA26F49E36002E5102 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EB1F826F49E36002E5102 /* AppDelegate.swift */; };
+		3D0EB1FC26F4BEE4002E5102 /* AlarmManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EB1FB26F4BEE4002E5102 /* AlarmManager.swift */; };
+		3D0EB1FD26F4BEE4002E5102 /* AlarmManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EB1FB26F4BEE4002E5102 /* AlarmManager.swift */; };
 		3D20B36422B8D61600472D12 /* TUTRepeatRule.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D20B36322B8D61600472D12 /* TUTRepeatRule.m */; };
 		3D2DE2C823FC387700FFB95B /* AsyncBlockOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D2DE2C723FC387700FFB95B /* AsyncBlockOperation.m */; };
 		3D3697D722AA8CE9007F0A83 /* TUTUserPreferenceFacade.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D3697D622AA8CE9007F0A83 /* TUTUserPreferenceFacade.m */; };
@@ -230,6 +232,7 @@
 /* Begin PBXFileReference section */
 		3D0EB1F526F48854002E5102 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		3D0EB1F826F49E36002E5102 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		3D0EB1FB26F4BEE4002E5102 /* AlarmManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmManager.swift; sourceTree = "<group>"; };
 		3D20B36222B8D61600472D12 /* TUTRepeatRule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUTRepeatRule.h; sourceTree = "<group>"; };
 		3D20B36322B8D61600472D12 /* TUTRepeatRule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUTRepeatRule.m; sourceTree = "<group>"; };
 		3D2DE2C623FC387700FFB95B /* AsyncBlockOperation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AsyncBlockOperation.h; sourceTree = "<group>"; };
@@ -418,6 +421,7 @@
 				3D20B36322B8D61600472D12 /* TUTRepeatRule.m */,
 				3DD7A23622C604F000876B85 /* TUTAlarmModel.h */,
 				3DD7A23722C604F000876B85 /* TUTAlarmModel.m */,
+				3D0EB1FB26F4BEE4002E5102 /* AlarmManager.swift */,
 			);
 			path = Alarms;
 			sourceTree = "<group>";
@@ -1507,6 +1511,7 @@
 				3D378F002536F79A0001F1F3 /* TUTUtils.m in Sources */,
 				3D378F012536F79A0001F1F3 /* TUTErrorFactory.m in Sources */,
 				3D378F022536F79A0001F1F3 /* TUTEncodingConverter.m in Sources */,
+				3D0EB1FD26F4BEE4002E5102 /* AlarmManager.swift in Sources */,
 				3DC299FE2673668000E1E79F /* QueryUtils.swift in Sources */,
 				3D378F032536F79A0001F1F3 /* TUTAes128Facade.m in Sources */,
 				3DC299FB267358AF00E1E79F /* ThemeManager.swift in Sources */,
@@ -1546,6 +1551,7 @@
 				3DB9A20E22BA5C23004EA08F /* TUTUtils.m in Sources */,
 				3D74536721089F4800B16F2E /* TUTErrorFactory.m in Sources */,
 				3D891F0D2105B12F0031E528 /* TUTEncodingConverter.m in Sources */,
+				3D0EB1FC26F4BEE4002E5102 /* AlarmManager.swift in Sources */,
 				3DC299FD2673668000E1E79F /* QueryUtils.swift in Sources */,
 				3D891F0E2105B12F0031E528 /* TUTAes128Facade.m in Sources */,
 				3DC299FA267358AF00E1E79F /* ThemeManager.swift in Sources */,
