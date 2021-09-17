@@ -7,6 +7,8 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Utils/TUTUserPreferenceFacade.h"
+#import "TUTAlarmManager.h"
 
 @interface TUTViewController : UIViewController<UIScrollViewDelegate>
 

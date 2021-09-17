@@ -11,7 +11,6 @@
 #import "PSPDFFastEnumeration.h"
 
 // App classes
-#import "TUTAppDelegate.h"
 #import "TUTViewController.h"
 #import "TUTCrypto.h"
 #import "TUTContactsSource.h"
@@ -21,6 +20,7 @@
 #import "Utils/TUTLog.h"
 #import "Files/TUTFileUtil.h"
 #import "tutanota-Swift.h"
+#import "TUTAlarmManager.h"
 
 // Frameworks
 #import <WebKit/WebKit.h>
@@ -121,17 +121,17 @@ alarmManager:(TUTAlarmManager *)alarmManager
   let theme = [_themeManager currentThemeWithFallback];
   [self applyTheme:theme];
 
-  if ([self.appDelegate.alarmManager hasNotificationTTLExpired]) {
-      [self.appDelegate.alarmManager resetStoredState];
+    if ([self.alarmManager hasNotificationTTLExpired]) {
+        [self.alarmManager resetStoredState];
   } else {
-      [self.appDelegate.alarmManager fetchMissedNotifications:^(NSError *error) {
+        [self.alarmManager fetchMissedNotifications:^(NSError *error) {
           if (error) {
               TUTLog(@"Failed to fetch/process missed notifications: %@", error);
           } else {
               TUTLog(@"Successfully processed missed notifications");
           }
       }];
-      [self.appDelegate.alarmManager rescheduleAlarms];
+        [self.alarmManager rescheduleAlarms];
   }
 
   [self loadMainPageWithParams:[NSDictionary new]];
@@ -224,7 +224,7 @@ alarmManager:(TUTAlarmManager *)alarmManager
         [self.appDelegate registerForPushNotificationsWithCallback:sendResponseBlock];
     } else if ([@"storePushIdentifierLocally" isEqualToString:type]) {
         // identifier, userid, origin, pushIdentifierElementId, pushIdentifierSessionKeyB64
-        [self.appDelegate.userPreferences storeSseInfoWithPushIdentifier:arguments[0] userId:arguments[1] sseOrign:arguments[2]];
+        [self.userPreferences storeSseInfoWithPushIdentifier:arguments[0] userId:arguments[1] sseOrign:arguments[2]];
         let keyData = [TUTEncodingConverter base64ToBytes:arguments[4]];
         NSError *error;
         [self.keychainManager storeKey:keyData withId:arguments[3] error:&error];
@@ -510,8 +510,8 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
 	scrollView.contentOffset = CGPointZero;
 }
 
-- (TUTAppDelegate *)appDelegate {
-    return (TUTAppDelegate *) UIApplication.sharedApplication.delegate;
+- (AppDelegate *)appDelegate {
+    return (AppDelegate *) UIApplication.sharedApplication.delegate;
 }
 
 - (UIStatusBarStyle)preferredStatusBarStyle {
