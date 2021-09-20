@@ -4,6 +4,7 @@ import {create} from "../../common/utils/EntityUtils"
 import {TypeRef} from "../../common/utils/TypeRef"
 import type {TypeModel} from "../../common/EntityTypes"
 
+import type {BlobAccessInfo} from "../sys/BlobAccessInfo"
 
 export const FileDataReturnPostTypeRef: TypeRef<FileDataReturnPost> = new TypeRef("tutanota", "FileDataReturnPost")
 export const _TypeModel: TypeModel = {
@@ -24,6 +25,14 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"associations": {
+		"accessInfo": {
+			"id": 1210,
+			"type": "AGGREGATION",
+			"cardinality": "ZeroOrOne",
+			"final": false,
+			"refType": "BlobAccessInfo",
+			"dependency": "sys"
+		},
 		"fileData": {
 			"id": 344,
 			"type": "ELEMENT_ASSOCIATION",
@@ -46,5 +55,6 @@ export type FileDataReturnPost = {
 
 	_format: NumberString;
 
+	accessInfo: ?BlobAccessInfo;
 	fileData: Id;
 }

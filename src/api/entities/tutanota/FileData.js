@@ -62,7 +62,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {
 		"blobs": {
-			"id": 1213,
+			"id": 1209,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,

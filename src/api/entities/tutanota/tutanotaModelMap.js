@@ -124,7 +124,6 @@ const map: {[string]: () => mixed} = {
     TemplateGroupRoot: () => import('./TemplateGroupRoot'),
     UserAreaGroupDeleteData: () => import('./UserAreaGroupDeleteData'),
     MailboxProperties: () => import('./MailboxProperties'),
-    FileBlobServiceGetReturn: () => import('./FileBlobServiceGetReturn'),
-    FileBlobServicePostReturn: () => import('./FileBlobServicePostReturn')
+    FileBlobServiceGetReturn: () => import('./FileBlobServiceGetReturn')
 }
 export default map
