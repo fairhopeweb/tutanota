@@ -10,8 +10,8 @@ export class Time {
 	+minutes: number
 
 	constructor(hours: number, minutes: number) {
-		this.hours = hours
-		this.minutes = minutes
+		this.hours = Math.floor(hours) % 24
+		this.minutes = Math.floor(minutes) % 60
 	}
 
 	static fromDate(date: Date): Time {

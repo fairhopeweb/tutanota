@@ -34,7 +34,7 @@ import type {User} from "../../api/entities/sys/User"
 import {isColorLight} from "../../gui/base/Color"
 import type {CalendarInfo, GroupColors} from "../view/CalendarView"
 import {isSameId} from "../../api/common/utils/EntityUtils";
-import {insertIntoSortedArray} from "../../api/common/utils/ArrayUtils"
+import {firstThrow, flat, insertIntoSortedArray} from "../../api/common/utils/ArrayUtils"
 import type {UserSettingsGroupRoot} from "../../api/entities/tutanota/UserSettingsGroupRoot"
 import type {Time} from "../../api/common/utils/Time"
 import type {SelectorItemList} from "../../gui/base/DropDownSelectorN"
@@ -43,7 +43,7 @@ import type {RepeatRule} from "../../api/entities/sys/RepeatRule"
 assertMainOrNode()
 
 export const CALENDAR_EVENT_HEIGHT: number = size.calendar_line_height + 2
-export const EVENT_BEING_DRAGGED_OPACITY = 0.7
+export const TEMPORARY_EVENT_OPACITY = 0.7
 
 export type CalendarMonthTimeRange = {
 	start: Date,
@@ -854,20 +854,6 @@ export function combineDateWithTime(date: Date, time: Time): Date {
 
 }
 
-export function deactivateBubblePointerEvents(bubbleDoms: Iterable<HTMLElement>) {
-	for (let dom of bubbleDoms) {
-		dom.style.pointerEvents = "none"
-		dom.style.opacity = "0.7"
-	}
-}
-
-export function activateBubblePointerEvents(bubbleDoms: Iterable<HTMLElement>) {
-	for (let dom of bubbleDoms) {
-		dom.style.pointerEvents = "auto"
-		dom.style.opacity = "1"
-	}
-}
-
 /**
  * Check if an event occurs during some time period of days, either partially or entirely
  * Expects that firstDayOfWeek is before lastDayOfWeek, and that event starts before it ends, otherwise result is invalid
@@ -892,4 +878,8 @@ export function createRepeatRuleEndTypeValues(): SelectorItemList<EndTypeEnum> {
 		{name: lang.get("calendarRepeatStopConditionOccurrences_label"), value: EndType.Count},
 		{name: lang.get("calendarRepeatStopConditionDate_label"), value: EndType.UntilDate}
 	]
+}
+
+export function getFirstDayOfMonth(month: CalendarMonth): Date {
+	return firstThrow(flat(month.weeks)).date
 }

@@ -1,12 +1,13 @@
 //@flow
 import type {CalendarEvent} from "../../api/entities/tutanota/CalendarEvent"
-import {CalendarEventTypeRef, createCalendarEvent} from "../../api/entities/tutanota/CalendarEvent"
+import {CalendarEventTypeRef} from "../../api/entities/tutanota/CalendarEvent"
 import m from "mithril"
 import {EntityClient} from "../../api/common/EntityClient"
 import {getDiffInHours, getTimeZone, isEventBetweenDays} from "../date/CalendarUtils"
 import {clone, neverNull} from "../../api/common/utils/Utils"
 import {remove} from "../../api/common/utils/ArrayUtils"
 import {isAllDayEvent} from "../../api/common/utils/CommonCalendarUtils"
+import type {EventDateUpdateHandler} from "./CalendarView"
 
 const DRAG_THRESHOLD = 10
 
@@ -29,6 +30,11 @@ export type EventsOnDays = {
 	longEvents: Array<CalendarEvent>,
 }
 
+/**
+ * Handles logic for dragging events in the calendar child views
+ * This includes tracking events that have been moved and need to
+ * be rendered while still waiting for entity updates
+ */
 export class EventDragHandler {
 
 	_data: ?DragData = null
@@ -76,7 +82,6 @@ export class EventDragHandler {
 	}
 
 	prepareDrag(calendarEvent: CalendarEvent, dateUnderMouse: Date, mousePos: MousePos) {
-		console.log("prepare drag")
 		this._data = {
 			originalEvent: calendarEvent,
 			originalDateUnderMouse: dateUnderMouse,
@@ -92,7 +97,9 @@ export class EventDragHandler {
 
 		if (this._data) {
 			const {originalEvent, originalDateUnderMouse, eventClone} = this._data
-			// I dont want to start dragging until the mouse has moved by some amount
+
+			// We don't want to actually start the drag until the mouse has moved by some distance
+			// So as to avoid accidentally dragging when you meant to click but moved the mouse a little
 			const distanceX = this._data.originalMousePos.x - mousePos.x
 			const distanceY = this._data.originalMousePos.y - mousePos.y
 			const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2)
@@ -100,36 +107,37 @@ export class EventDragHandler {
 				this._isDragging = true
 				const mouseDiff = dateUnderMouse - originalDateUnderMouse
 
+				// We don't want to trigger a redraw everytime the drag call is triggered, only when necessary
 				if (mouseDiff !== this._lastMouseDiff) {
 					this._hasChanged = true
 				}
 
-				// We don't want to trigger a redraw everytime the drag call is triggered, only when necessary
 				this._lastMouseDiff = mouseDiff
-				eventClone.startTime = new Date(originalEvent.startTime.getTime() + mouseDiff)
-				eventClone.endTime = new Date(originalEvent.endTime.getTime() + mouseDiff)
+				this._updateTemporaryEventWithDiff(eventClone, originalEvent, mouseDiff)
 				m.redraw()
 			}
 		}
 	}
 
-	async endDrag(dateUnderMouse: Date, updateEventCallback: (eventId: IdTuple, newDate: Date) => Promise<boolean>): Promise<void> {
+	async endDrag(dateUnderMouse: Date, updateEventCallback: EventDateUpdateHandler): Promise<void> {
 
 		if (this._isDragging && this._data) {
-			const {originalEvent, eventClone} = this._data
+			const {originalEvent, eventClone, originalDateUnderMouse} = this._data
 
+			// We update our state first because the updateCallback might take some time, and
+			// we want the UI to be able to react to the drop having happened before we get the result
 			this._hasChanged = true
 			this._isDragging = false
 			this._data = null
+			const mouseDiff = dateUnderMouse - originalDateUnderMouse
+			this._updateTemporaryEventWithDiff(eventClone, originalEvent, mouseDiff)
 
-			// We want to return immediately with the temporary event, to give it back to the view,
-			// and do all the update stuff async
-			const diff = eventClone.startTime.getTime() - originalEvent.startTime.getTime()
-			if (diff !== 0) {
+			// If the date hasn't changed, then it should be a noop
+			if (mouseDiff !== 0) {
 				this._transientEvents.push(eventClone)
 				const updateEvent = async (newStartTime) => {
 					try {
-						const didUpdate = await updateEventCallback(originalEvent._id, newStartTime)
+						const didUpdate = await updateEventCallback(originalEvent, newStartTime)
 						if (!didUpdate) {
 							remove(this._transientEvents, eventClone)
 						}
@@ -144,7 +152,7 @@ export class EventDragHandler {
 
 				if (originalEvent.repeatRule) {
 					const firstOccurrence = await this._entityClient.load(CalendarEventTypeRef, originalEvent._id)
-					const startTime = new Date(firstOccurrence.startTime.getTime() + diff)
+					const startTime = new Date(firstOccurrence.startTime.getTime() + mouseDiff)
 					return updateEvent(startTime)
 				} else {
 					return updateEvent(eventClone.startTime)
@@ -156,6 +164,11 @@ export class EventDragHandler {
 		}
 
 		m.redraw()
+	}
+
+	_updateTemporaryEventWithDiff(eventClone: CalendarEvent, originalEvent: CalendarEvent, mouseDiff: number) {
+		eventClone.startTime = new Date(originalEvent.startTime.getTime() + mouseDiff)
+		eventClone.endTime = new Date(originalEvent.endTime.getTime() + mouseDiff)
 	}
 
 	cancelDrag() {
@@ -170,6 +183,13 @@ export class EventDragHandler {
 
 	}
 
+	/**
+	 * Given a events and days, return the long and short events of that range of days
+	 * Handled here because we are tracking temporary events
+	 * @returns    shortEvents: Array<Array<CalendarEvent>>, short events per day.,
+	 *             longEvents: Array<CalendarEvent>: long events over the whole range,
+	 *             days: Array<Date>: the original days that were passed in
+	 */
 	getEventsOnDays(days: Array<Date>, eventsForDays: Map<number, Array<CalendarEvent>>, hiddenCalendars: Set<Id>): EventsOnDays {
 		const longEvents: Set<CalendarEvent> = new Set()
 		let shortEvents: Array<Array<CalendarEvent>> = []
@@ -194,15 +214,13 @@ export class EventDragHandler {
 				if (referencedTransientEventIdx !== -1) {
 					const transientEvent = this._transientEvents[referencedTransientEventIdx]
 
-					// If we have some transient events, we want to get rid of them once the concrete event from the server is received
-					// we detect this by checking the times, because currently that is the only relevant case for transient events
+					// If we have some transient events, we want to get rid of them once the real event from the server is received
 					// If the time is different, it means it's the new event
-					// If the time is the same, it means that we need to keep rendering the transient event until the update is received
-					// this could be done better by just looking for the id of the newly created event, but this is a bit trickier to achieve
-					// due to some async shenanigans
-					// TODO do we need to check individual props here? (year, month, etc)
-					if (event.startTime.getTime() === transientEvent.startTime.getTime()
-						&& event.endTime.getTime() === transientEvent.endTime.getTime()) {
+					// If the time is the same, it means it's the original event, so we need to keep rendering the transient event until the update is received
+					// This would be better if we could compare _id but the id of the new event is generated fairly deep inside the call
+					// to CalendarEventViewModel.saveAndSend and it would be a large change to be able to access it here when we need it
+					if (areEventDatesEqual(event.startTime, transientEvent.startTime)
+						&& areEventDatesEqual(event.endTime, transientEvent.endTime)) {
 						this._transientEvents.splice(referencedTransientEventIdx, 1)
 					} else {
 						continue
@@ -232,4 +250,16 @@ export class EventDragHandler {
 			shortEvents: shortEvents.map(innerShortEvents => innerShortEvents.filter(event => !longEvents.has(event)))
 		}
 	}
+}
+
+/**
+ * Compare the dates for two events, ignoring seconds and milliseconds
+ */
+function areEventDatesEqual(e1: Date, e2: Date): boolean {
+	return e1.getUTCMinutes() === e2.getUTCMinutes()
+		&& e1.getUTCHours() === e2.getUTCHours()
+		&& e1.getUTCDate() === e2.getUTCDate()
+		&& e1.getUTCMonth() === e2.getUTCMonth()
+		&& e1.getUTCFullYear() === e2.getUTCFullYear()
+
 }

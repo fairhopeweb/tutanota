@@ -7,7 +7,7 @@ import {
 	CALENDAR_EVENT_HEIGHT,
 	combineDateWithTime,
 	DEFAULT_HOUR_OF_DAY,
-	EVENT_BEING_DRAGGED_OPACITY,
+	TEMPORARY_EVENT_OPACITY,
 	eventEndsAfterDay,
 	eventStartsBefore,
 	getDiffInDays,
@@ -34,7 +34,7 @@ import {lang} from "../../misc/LanguageViewModel"
 import {PageView} from "../../gui/base/PageView"
 import type {CalendarEvent} from "../../api/entities/tutanota/CalendarEvent"
 import {logins} from "../../api/main/LoginController"
-import type {CalendarEventBubbleClickHandler, CalendarViewTypeEnum, EventUpdateHandler, GroupColors} from "./CalendarView"
+import type {CalendarEventBubbleClickHandler, CalendarViewTypeEnum, EventDateUpdateHandler, GroupColors} from "./CalendarView"
 import {CalendarViewType, SELECTED_DATE_INDICATOR_THICKNESS} from "./CalendarView"
 import type {EventsOnDays, MousePos} from "./EventDragHandler"
 import {EventDragHandler} from "./EventDragHandler"
@@ -58,7 +58,7 @@ export type Attrs = {
 	hiddenCalendars: Set<Id>,
 	startOfTheWeek: WeekStartEnum,
 	onChangeViewPeriod: (next: boolean) => mixed,
-	onEventMoved: EventUpdateHandler
+	onEventMoved: EventDateUpdateHandler
 }
 
 export class MultiDayCalendarView implements MComponent<Attrs> {
@@ -67,14 +67,13 @@ export class MultiDayCalendarView implements MComponent<Attrs> {
 	_domElements: HTMLElement[] = [];
 	_scrollPosition: number;
 	_eventDragHandler: EventDragHandler
-	_dateUnderMouse: Date
+	_dateUnderMouse: ?Date = null
 	_viewDom: ?HTMLElement = null
 	_lastMousePos: ?MousePos = null
 	_isHeaderEventBeingDragged: boolean = false
 
 	constructor() {
 		this._scrollPosition = size.calendar_hour_height * DEFAULT_HOUR_OF_DAY
-		this._dateUnderMouse = vnode.attrs.selectedDate
 		this._eventDragHandler = new EventDragHandler(locator.entityClient)
 	}
 
@@ -280,11 +279,11 @@ export class MultiDayCalendarView implements MComponent<Attrs> {
 					const dayNumber = Math.floor(x / dayWidth)
 
 					const date = new Date(thisPageEvents.days[dayNumber])
-
+					const dateUnderMouse = this._dateUnderMouse
 					// When dragging short events, dont cause the mouse position date to drop to 00:00 when dragging over the header
-					if (this._eventDragHandler.isDragging && !this._isHeaderEventBeingDragged) {
-						date.setHours(this._dateUnderMouse.getHours())
-						date.setMinutes(this._dateUnderMouse.getMinutes())
+					if (dateUnderMouse && this._eventDragHandler.isDragging && !this._isHeaderEventBeingDragged) {
+						date.setHours(dateUnderMouse.getHours())
+						date.setMinutes(dateUnderMouse.getMinutes())
 					}
 					this._dateUnderMouse = date
 				}
@@ -321,7 +320,7 @@ export class MultiDayCalendarView implements MComponent<Attrs> {
 			thisPageLongEvents.children
 		)
 	}
-	
+
 
 	renderSelectedDateIndicatorRow(selectedDate: Date, dates: Array<Date>): Children {
 		return m(".flex.pt-s", dates.map(day => m(".flex-grow.flex.col", {
@@ -462,7 +461,7 @@ export class MultiDayCalendarView implements MComponent<Attrs> {
 		const isTemporary = this._eventDragHandler.isTemporaryEvent(event)
 		const fadeIn = !isTemporary
 		const opacity = isTemporary
-			? EVENT_BEING_DRAGGED_OPACITY
+			? TEMPORARY_EVENT_OPACITY
 			: 1
 		const enablePointerEvents = !this._eventDragHandler.isTemporaryEvent(event)
 
@@ -510,7 +509,7 @@ export class MultiDayCalendarView implements MComponent<Attrs> {
 		}))
 	}
 
-	_endDrag(onEventMovedCallback: EventUpdateHandler) {
+	_endDrag(onEventMovedCallback: EventDateUpdateHandler) {
 		this._isHeaderEventBeingDragged = false
 		const dateUnderMouse = this.getDateUnderMouse()
 		if (dateUnderMouse) {

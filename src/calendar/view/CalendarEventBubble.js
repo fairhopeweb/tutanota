@@ -30,7 +30,7 @@ export class CalendarEventBubble implements MComponent<CalendarEventBubbleAttrs>
 
 	_hasFinishedInitialRender: boolean = false
 
-	oncreate() {
+	oncreate(vnode: Vnode<CalendarEventBubbleAttrs>) {
 		this._hasFinishedInitialRender = true
 	}
 
