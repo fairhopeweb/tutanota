@@ -63,6 +63,7 @@ import static de.tutao.tutanota.Utils.bytesToBase64;
 public class FileUtil {
 	private final static String TAG = "FileUtil";
 	private static final int HTTP_TIMEOUT = 15 * 1000;
+	public static final int COPY_BUFFER_SIZE = 1024 * 1000;
 
 	private final MainActivity activity;
 	private final LocalNotificationsFacade localNotificationsFacade;
@@ -313,7 +314,7 @@ public class FileUtil {
 		}
 	}
 
-	JSONObject download(final String sourceUrl, final JSONObject headers, final String filename) throws IOException, JSONException {
+	JSONObject download(final String sourceUrl, final JSONObject headers, final String filePath) throws IOException, JSONException {
 		HttpURLConnection con = null;
 		try {
 			con = (HttpURLConnection) (new URL(sourceUrl)).openConnection();
@@ -328,7 +329,11 @@ public class FileUtil {
 			File encryptedFile = null;
 			if (con.getResponseCode() == 200) {
 				InputStream inputStream = con.getInputStream();
-				encryptedFile = writeFileToEncryptedDir(filename, inputStream);
+				encryptedFile = new File(filePath);
+				File path = encryptedFile.getParentFile();
+				path.mkdirs();
+				IOUtils.copyLarge(inputStream, new FileOutputStream(encryptedFile),
+						new byte[COPY_BUFFER_SIZE]);
 			}
 
 			JSONObject result = new JSONObject()
@@ -354,7 +359,7 @@ public class FileUtil {
 		File file = new File(dir, filename);
 
 		IOUtils.copyLarge(inputStream, new FileOutputStream(file),
-				new byte[1024 * 1000]);
+				new byte[COPY_BUFFER_SIZE]);
 		return file;
 	}
 
@@ -424,5 +429,23 @@ public class FileUtil {
 			blobs.add(blob);
 		}
 		return new JSONArray(blobs);
+	}
+
+	public String hashFile(String fileUri) throws IOException, NoSuchAlgorithmException {
+		InputStream inputStream = new FileInputStream(new File(Uri.parse(fileUri).getPath()));
+		HashingInputStream hashingInputStream = new HashingInputStream(MessageDigest.getInstance("SHA-256"), inputStream);
+		OutputStream os = new OutputStream() {
+			public void write(int b) {}
+		};
+
+		IOUtils.copyLarge(hashingInputStream, os);
+		byte[] hash = hashingInputStream.hash();
+		return bytesToBase64(hash);
+	}
+
+	public String getTempFileUri(String filename) throws IOException {
+		File dir = new File(Utils.getDir(activity), Crypto.TEMP_DIR_ENCRYPTED);
+		File file = new File(dir, filename);
+		return  file.getCanonicalPath();
 	}
 }

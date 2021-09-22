@@ -35,7 +35,7 @@ export class FileController {
 						                        .then((fileApp) => fileApp.putFileIntoDownloadsFolder(file.location))
 					                        : this.open(file))
 					                        .finally(() => this._deleteFile(file.location))
-			                        })
+				                    })
 		} else if (isDesktop()) {
 			downloadPromise = (open
 					? worker.fileFacade.downloadFileContentNative(tutanotaFile)

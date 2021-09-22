@@ -320,6 +320,14 @@ public final class Native {
 					scheduleAlarms(args.getJSONArray(0));
 					promise.resolve(null);
 					break;
+				case "hashFile": {
+					String file = args.getString(0);
+					return promise.resolve(files.hashFile(file));
+				}
+				case "getTempFileUri": {
+					String file = args.getString(0);
+					return promise.resolve(files.getTempFileUri(file));
+				}
 				default:
 					throw new Exception("unsupported method: " + method);
 			}
