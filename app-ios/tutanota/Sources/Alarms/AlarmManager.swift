@@ -220,7 +220,28 @@ class AlarmManager {
   }
   
   private func unscheduleAlarm(_ alarmNotification: TUTAlarmNotification) throws {
-    
+    if let repeatRule = alarmNotification.repeatRule {
+      let sessionKey = self.resolveSessionkey(alarmNotification: alarmNotification)
+      guard let sessionKey = sessionKey else {
+        throw TUTErrorFactory.createError("Cannot resolve session key on unschedule \(alarmNotification.alarmInfo.alarmIdentifier)")
+      }
+      let startDate = try alarmNotification.getEventStartDec(sessionKey)
+      let endDate = try alarmNotification.getEventEndDec(sessionKey)
+      let trigger = try alarmNotification.alarmInfo.getTriggerDec(sessionKey)
+      
+      let ocurrences = try self.iterateRepeatingAlarm(
+        eventStart: startDate,
+        eventEnd: endDate,
+        trigger: trigger,
+        repeatRule: repeatRule,
+        sessionKey: sessionKey
+      )
+      let alarmIdentifier = alarmNotification.alarmInfo.alarmIdentifier
+      let occurenceIds = ocurrences.map { o in
+        ocurrenceIdentifier(alarmIdentifier: alarmIdentifier, occurrence: o.occurrence)
+      }
+      
+    }
   }
   
   private func resolveSessionkey(alarmNotification: TUTAlarmNotification) -> Data? {
@@ -291,7 +312,6 @@ class AlarmManager {
     summary: String,
     alarmIdentifier: String
   ) {
-    let notificationCenter = UNUserNotificationCenter.current()
     let alarmTime = TUTAlarmModel.alarmTime(withTrigger: trigger, eventTime: ocurrenceInfo.ocurrenceTime)
     
     if alarmTime.timeIntervalSinceNow < 0 {
@@ -303,7 +323,42 @@ class AlarmManager {
       TUTSLog("Event alarm is too far into the future \(alarmIdentifier) \(alarmTime)")
     }
     
-    // TODO
+    let formmatedTime = DateFormatter.localizedString(
+      from: ocurrenceInfo.ocurrenceTime,
+      dateStyle: .short,
+      timeStyle: .short
+    )
+    let notificationText = "\(formmatedTime): \(summary)"
+    let cal = Calendar.current
+    let dateComponents = cal.dateComponents(
+      [.year, .month, .day, .hour, .minute],
+      from: alarmTime
+    )
+    let notificationTrigger = UNCalendarNotificationTrigger(
+      dateMatching: dateComponents,
+      repeats: false
+    )
+    let content = UNMutableNotificationContent()
+    content.title = TUTUtils.translate("TutaoCalendarAlarmTitle", default: "Reminder")
+    content.body = notificationText
+    content.sound = UNNotificationSound.default
+    
+    let identifier = ocurrenceIdentifier(
+      alarmIdentifier: alarmIdentifier,
+      occurrence: ocurrenceInfo.occurrence
+    )
+    let request = UNNotificationRequest(
+      identifier: identifier,
+      content: content,
+      trigger: notificationTrigger
+    )
+    TUTSLog("Scheduling a notification \(identifier) at \(cal.date(from: dateComponents)!)")
+    UNUserNotificationCenter.current().add(request) { error in
+      if let error = error {
+        // We should make the whole funciton async and wait for it
+        TUTSLog("Failed to schedule a notification \(error)")
+      }
+    }
   }
 }
 
