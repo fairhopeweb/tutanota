@@ -196,17 +196,26 @@ class AlarmManager {
     let trigger = try alarmNotification.alarmInfo.getTriggerDec(sessionKey)
     let summary = try alarmNotification.getSummaryDec(sessionKey)
     
+    var occurrences = [OcurrenceInfo]()
     if let repeatRule = alarmNotification.repeatRule {
-//      var occurrences = []
-      self.iterateRepeatingAlarm(
+      occurrences = try self.iterateRepeatingAlarm(
         eventStart: startDate,
         eventEnd: endDate,
         trigger: trigger,
         repeatRule: repeatRule,
         sessionKey: sessionKey
-      ) { ocurrenceInfo in
-        
-      }
+      )
+    } else {
+      let singleOcurrence = OcurrenceInfo(occurrence: 0, ocurrenceTime: startDate)
+      occurrences = [singleOcurrence]
+    }
+    for ocurrence in occurrences {
+      self.scheduleAlarmOcurrence(
+        ocurrenceInfo: ocurrence,
+        trigger: trigger,
+        summary: summary,
+        alarmIdentifier: alarmIdentifier
+      )
     }
   }
   
@@ -239,9 +248,8 @@ class AlarmManager {
     eventEnd: Date,
     trigger: String,
     repeatRule: TUTRepeatRule,
-    sessionKey: Data,
-    action: @escaping (OcurrenceInfo) -> Void
-  ) throws {
+    sessionKey: Data
+  ) throws -> [OcurrenceInfo] {
     let timeZoneName = try repeatRule.getTimezoneDec(sessionKey)
     
     var errorPointer: NSError?
@@ -255,6 +263,7 @@ class AlarmManager {
     }
     
     let now = Date()
+    var ocurrences = [OcurrenceInfo]()
     TUTAlarmModel.iterateRepeatingAlarm(
       withNow: now,
       timeZone: timeZoneName,
@@ -264,12 +273,37 @@ class AlarmManager {
       interval: interval,
       endType: endType,
       endValue: envValue,
-      trigger: trigger,
       localTimeZone: TimeZone.current,
       scheduleAhead: EVENTS_SCHEDULED_AHEAD
-    ) { alarmTime, ocurrnce, occurrenceTime in
-      action(OcurrenceInfo(alarmTime: alarmTime, occurrence: Int(ocurrnce), ocurrenceTime: occurrenceTime))
+    ) { ocurrnce, occurrenceTime in
+      let info = OcurrenceInfo(
+        occurrence: Int(ocurrnce),
+        ocurrenceTime: occurrenceTime
+      )
+      ocurrences.append(info)
     }
+    return ocurrences
+  }
+  
+  private func scheduleAlarmOcurrence(
+    ocurrenceInfo: OcurrenceInfo,
+    trigger: String,
+    summary: String,
+    alarmIdentifier: String
+  ) {
+    let notificationCenter = UNUserNotificationCenter.current()
+    let alarmTime = TUTAlarmModel.alarmTime(withTrigger: trigger, eventTime: ocurrenceInfo.ocurrenceTime)
+    
+    if alarmTime.timeIntervalSinceNow < 0 {
+      TUTSLog("Even alarm is in the past \(alarmIdentifier) \(alarmTime)")
+      return
+    }
+    let fortNightSeconds: Double = 60 * 60 * 24 * 14
+    if alarmTime.timeIntervalSinceNow > fortNightSeconds {
+      TUTSLog("Event alarm is too far into the future \(alarmIdentifier) \(alarmTime)")
+    }
+    
+    // TODO
   }
 }
 
@@ -296,7 +330,10 @@ func extractSuspensionTime(from httpResponse: HTTPURLResponse) -> Int {
 }
 
 struct OcurrenceInfo {
-  let alarmTime: Date
   let occurrence: Int
   let ocurrenceTime: Date
+}
+
+private func ocurrenceIdentifier(alarmIdentifier: String, occurrence: Int) -> String {
+  return "\(alarmIdentifier)#\(occurrence)"
 }

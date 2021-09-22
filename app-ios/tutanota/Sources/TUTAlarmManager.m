@@ -290,11 +290,10 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
     if (repeatRule) {
         [self iterateRepeatingAlarmtWithTime:startDate
                                     eventEnd:endDate
-                                     trigger:trigger
                                   repeatRule:repeatRule
                                   sessionKey:sessionKey
                                        error:error
-                                       block:^(NSDate *time, int occurrence, NSDate *occurrenceDate) {
+                                       block:^(int occurrence, NSDate *occurrenceDate) {
                                            [self scheduleAlarmOccurrenceEventWithTime:occurrenceDate trigger:trigger summary:summary alarmIdentifier:alarmIdentifier occurrence:occurrence];
                                        }];
         if (*error) {
@@ -337,7 +336,6 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
         NSMutableArray *occurrences = [NSMutableArray new];
         [self iterateRepeatingAlarmtWithTime:startDate
                                     eventEnd:endDate
-                                     trigger:trigger
                                   repeatRule:repeatRule
                                   sessionKey:sessionKey
                                        error:error
@@ -366,7 +364,8 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
             var sessionKey = [TUTAes128Facade decryptKey:encSessionKey
                                        withEncryptionKey:pushIdentifierSessionSessionKey error:&error];
             if (error){
-                TUTLog(@"Failed to decrypt key %@ %@", notificationSessionKey.pushIdentifier.elementId, error);
+                TUTLog(@"Failed to decrypt key %@ %@", notificationSessionKey.pushIdentifier.element
+                       Id, error);
             }
             return sessionKey;
         }
@@ -377,7 +376,6 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
 
 -(void)iterateRepeatingAlarmtWithTime:(NSDate *)eventTime
                              eventEnd:(NSDate *)eventEnd
-                              trigger:(NSString *)trigger
                            repeatRule:(TUTRepeatRule *)repeatRule
                            sessionKey:(NSData *)sessionKey
                                 error:(NSError **)error
@@ -407,7 +405,6 @@ static const int SERVICE_UNAVAILABLE_HTTP_CODE = 503;
                                         interval:interval
                                          endType:endType
                                         endValue:endValue
-                                         trigger:trigger
                                   localTimeZone:NSTimeZone.localTimeZone
                                    scheduleAhead:EVENTS_SCHEDULED_AHEAD
                                            block:block];

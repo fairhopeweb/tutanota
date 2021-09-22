@@ -21,10 +21,9 @@ NS_ASSUME_NONNULL_BEGIN
                            interval:(NSInteger)interval
                             endType:(TUTRepeatEndType)endType
                            endValue:(long long)endValue
-                            trigger:(NSString *)trigger
                       localTimeZone:(NSTimeZone *)localtimeZone
                       scheduleAhead:(NSInteger)scheduleAhead
-                              block:(void(^)(NSDate *alarmtime, int occurrence, NSDate *occurrencetime))block;
+                              block:(void(^)(int occurrence, NSDate *occurrencetime))block;
 
 + (NSDate *)alarmTimeWithTrigger:(NSString*)alarmTrigger eventTime:(NSDate *)eventTime;
 

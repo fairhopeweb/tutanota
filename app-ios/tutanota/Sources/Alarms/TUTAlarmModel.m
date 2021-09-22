@@ -22,7 +22,7 @@
                              trigger:(NSString *)trigger
                       localTimeZone:(NSTimeZone *)localtimeZone
                        scheduleAhead:(NSInteger)scheduleAhead
-                               block:(void(^)(NSDate *alarmtime, int occurrence, NSDate *occurrencetime))block {
+                               block:(void(^)(int occurrence, NSDate *occurrencetime))block {
     var occurrences = 0;
     var occurrencesAfterNow = 0;
     let cal = NSCalendar.currentCalendar;
@@ -45,7 +45,7 @@
         if (endDate != nil && [occurrenceDate compare:endDate] != NSOrderedAscending) {
             break;
         } else if ([now compare:alarmDate] != NSOrderedDescending) { // Only schedule alarms in the future
-            block(alarmDate, occurrences, occurrenceDate);
+            block(occurrences, occurrenceDate);
             occurrencesAfterNow++;
         }
         occurrences++;
