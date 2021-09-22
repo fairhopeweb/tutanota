@@ -13,6 +13,9 @@ import {promises as fs} from "fs"
 import type {DateProvider} from "../calendar/date/CalendarUtils"
 import {CancelledError} from "../api/common/error/CancelledError"
 import type {NativeDownloadResult} from "../native/common/FileApp"
+import {hash} from "../api/worker/crypto/Sha256"
+import {uint8ArrayToBase64} from "../api/common/utils/Encoding"
+
 
 const TAG = "[DownloadManager]"
 
@@ -56,14 +59,28 @@ export class DesktopDownloadManager {
 		       .on("spellcheck-dictionary-download-failure", (ev, lcode) => log.debug(TAG, "spellcheck-dictionary-download-failure", lcode))
 	}
 
-	async downloadNative(url: string, headers: Params, filename: string): Promise<NativeDownloadResult> {
+
+	/**
+	 * SHA256 of the file found at given URI
+	 * @throws Error if file is not found
+	 */
+	async hashFile(fileUri: string): Promise<string> {
+		const data = await this._fs.promises.readFile(fileUri)
+		const checksum = hash(data)
+		return uint8ArrayToBase64(checksum)
+	}
+
+	async getTempFileUri(filename: string): Promise<string> {
+		const downloadDirectory = await this.getTutanotaTempDirectory("download")
+		return path.join(downloadDirectory, filename)
+	}
+
+	async download(url: string, headers: Params, filename: string): Promise<NativeDownloadResult> {
 		return new Promise(async (resolve, reject) => {
-			const downloadDirectory = await this.getTutanotaTempDirectory("download")
-			const encryptedFileUri = path.join(downloadDirectory, filename)
-			const fileStream = this._fs.createWriteStream(encryptedFileUri)
+			const fileStream = this._fs.createWriteStream(filename)
 			                       .on('close', () => resolve({
 				                       statusCode: 200,
-				                       encryptedFileUri: encryptedFileUri
+				                       encryptedFileUri: filename
 			                       }))
 
 			let cleanup = e => {
@@ -72,7 +89,7 @@ export class DesktopDownloadManager {
 				          .on('close', () => { // file descriptor was released
 					          fileStream.removeAllListeners('close')
 					          // remove file if it was already created
-					          this._fs.promises.unlink(encryptedFileUri)
+					          this._fs.promises.unlink(filename)
 					              .catch(noOp)
 					              .then(() => reject(e))
 				          })

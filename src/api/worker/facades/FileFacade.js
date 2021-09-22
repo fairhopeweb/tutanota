@@ -32,7 +32,7 @@ import type {BlobAccessInfo} from "../../entities/sys/BlobAccessInfo"
 import {_TypeModel as BlobDataGetTypeModel, createBlobDataGet} from "../../entities/storage/BlobDataGet"
 import {createBlobWriteData} from "../../entities/storage/BlobWriteData"
 import {createTypeInfo} from "../../entities/sys/TypeInfo"
-import {uint8ArrayToBase64, uint8ArrayToHex} from "../../common/utils/Encoding"
+import {base64ToUint8Array, uint8ArrayToBase64, uint8ArrayToHex} from "../../common/utils/Encoding"
 import {TypeRef} from "../../common/utils/TypeRef"
 import type {TypeModel} from "../../common/EntityTypes"
 import {LoginFacadeImpl} from "./LoginFacade"
@@ -66,7 +66,11 @@ type BlobUploader<T: Uint8Array | FileReference> = (url: string, headers: Params
 
 
 function _getBlobIdFromData(blob: Uint8Array): string {
-	return uint8ArrayToBase64(hash(blob).slice(0, 6))
+	return _getBlobIdFromHash(hash(blob))
+}
+
+function _getBlobIdFromHash(blobHash: Uint8Array): string {
+	return uint8ArrayToBase64(blobHash.slice(0, 6))
 }
 
 export class FileFacade {
@@ -316,10 +320,28 @@ export class FileFacade {
 	}
 
 	async _blobDownloaderNative(blobId: BlobId, headers: Params, body: string, server: TargetServer): Promise<NativeDownloadResult> {
-		const filename = uint8ArrayToHex(blobId.blobId) + ".blob"
+		const blobFilename = uint8ArrayToHex(blobId.blobId) + ".blob"
+		const fileUri = await fileApp.getTempFileUri(blobFilename)
+
+		// Check if we have the blob in the filesystem
+		try {
+			const existingBlobHash = await fileApp.hashFile(fileUri)
+			const existingBlobId = base64ToUint8Array(existingBlobHash).slice(0, 6)
+			if (arrayEquals(blobId.blobId, existingBlobId)) {
+				console.log(`using existing blob file: ${blobFilename}`)
+				return {
+					statusCode: 200,
+					encryptedFileUri: fileUri
+				}
+			}
+
+		} catch(e) {
+			// could not find existing blob
+		}
+
 		const serviceUrl = new URL(getRestPath(StorageService.BlobService), server.url)
 		const url = addParamsToUrl(serviceUrl, {"_body": body})
-		return fileApp.download(url.toString(), headers, filename)
+		return fileApp.download(url.toString(), headers, fileUri)
 	}
 
 	async _getDownloadToken(readArchiveId: Id): Promise<BlobAccessInfo> {

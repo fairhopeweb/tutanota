@@ -266,7 +266,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 		const mocks = standardMocks()
 		const dl = makeMockedDownloadManager(mocks)
 		const res = new mocks.netMock.Response(200)
-		const dlPromise = dl.downloadNative("some://url/file", {v: "foo", accessToken: "bar"}, "nativelyDownloadedFile")
+		const dlPromise = dl.download("some://url/file", {v: "foo", accessToken: "bar"}, "nativelyDownloadedFile")
 		// delay so that dl can set up it's callbacks on netMock before we try to access them
 		await delay(5)
 		mocks.netMock.ClientRequest.mockedInstances[0].callbacks['response'](res)
@@ -295,7 +295,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 
 		const dl = makeMockedDownloadManager(mocks)
 		const res = new mocks.netMock.Response(404)
-		const dlPromise = dl.downloadNative("some://url/file", {v: "foo", accessToken: "bar"}, "nativelyDownloadedFile")
+		const dlPromise = dl.download("some://url/file", {v: "foo", accessToken: "bar"}, "nativelyDownloadedFile")
 		await delay(5)
 		mocks.netMock.ClientRequest.mockedInstances[0].callbacks['response'](res)
 		const ws = WriteStream.mockedInstances[0]

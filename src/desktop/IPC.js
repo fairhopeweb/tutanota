@@ -198,7 +198,7 @@ export class IPC {
 				const url: string = downcast(args[0])
 				const headers: {|v: string, accessToken: string|} = downcast(args[1])
 				const filename: string = downcast(args[2])
-				return this._dl.downloadNative(url, headers, filename)
+				return this._dl.download(url, headers, filename)
 			}
 			case 'joinFiles': {
 				const filename: string = downcast(args[0])
@@ -355,6 +355,14 @@ export class IPC {
 				await this._themeManager.setThemes(themes)
 				await mapNullable(await this._themeManager.getSelectedThemeId(), id => this._applyTheme(id))
 				return
+			}
+			case 'hashFile': {
+				const file: string = args[0]
+				return this._dl.hashFile(file)
+			}
+			case 'getTempFileUri': {
+				const file: string = args[0]
+				return this._dl.getTempFileUri(file)
 			}
 			default:
 				return Promise.reject(new Error(`Invalid Method invocation: ${method}`))

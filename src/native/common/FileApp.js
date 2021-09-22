@@ -14,6 +14,8 @@ export const fileApp = {
 	download,
 	joinFiles,
 	splitFileIntoBlobs,
+	hashFile,
+	getTempFileUri,
 	upload,
 	open,
 	deleteFile,
@@ -148,6 +150,14 @@ export type NativeDownloadResult = {
  */
 function download(url: string, headers: Params, filename: string): Promise<NativeDownloadResult> {
 	return nativeApp.invokeNative(new Request('download', [url, headers, filename]))
+}
+
+function getTempFileUri(filename: string): Promise<string> {
+	return nativeApp.invokeNative(new Request("getTempFileUri", [filename]))
+}
+
+function hashFile(filename: string): Promise<string> {
+	return nativeApp.invokeNative(new Request('hashFile', [filename]))
 }
 
 function clearFileData(): Promise<any> {
