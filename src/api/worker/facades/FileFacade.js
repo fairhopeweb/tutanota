@@ -198,8 +198,9 @@ export class FileFacade {
 
 		// now blobs has the correct order of downloaded blobs, and we need to tell native to join them
 		const files = blobs.map(r => assertNotNull(r.encryptedFileUri))
+		const outputFileUri = await fileApp.getTempFileUri(file.name)
 
-		const encryptedFileUri = await fileApp.joinFiles(file.name, files)
+		const encryptedFileUri = await fileApp.joinFiles(outputFileUri, files)
 		for (const tmpBlobFile of files) {
 			fileApp.deleteFile(tmpBlobFile)
 		}

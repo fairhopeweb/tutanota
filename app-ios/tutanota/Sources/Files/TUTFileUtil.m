@@ -96,54 +96,50 @@ static NSString * const FILES_ERROR_DOMAIN = @"tutanota_files";
 }
 
 - (void)downloadFileFromUrl:(NSString * _Nonnull)urlString
-					forName:(NSString * _Nonnull)fileName
-				withHeaders:(NSDictionary<NSString *, NSString *> * _Nonnull)headers
-				 completion:(void (^ _Nonnull)(NSDictionary<NSString *, id> * _Nullable response, NSError * _Nullable error))completion {
-	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-			NSURL * url = [NSURL URLWithString:urlString];
-			NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-			[request setHTTPMethod:@"GET"];
-			[request setURL:url];
-			[request setAllHTTPHeaderFields:headers];
-
-			NSURLSessionConfiguration * configuration = [NSURLSessionConfiguration ephemeralSessionConfiguration];	// Ephemeral sessions do not store any data to disk; all caches, credential stores, and so on are kept in RAM.
-			NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
-
-			[[session dataTaskWithRequest: request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-				NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
-                if (error) {
-					completion(nil, error);
-                    return;
-                }
-                
-                NSString *filePath;
-                
-				if ([httpResponse statusCode] == 200) {
-                    NSError *error = nil;
-					NSString *encryptedPath = [TUTFileUtil getEncryptedFolder: &error];
-                    if (error) {
-						completion(nil, error);
-						return;
-					}
-					filePath = [encryptedPath stringByAppendingPathComponent:fileName];
-					[data writeToFile:filePath options: NSDataWritingAtomic error:&error];
-					if (error) {
-						completion(nil, error);
-                        return;
-					}
-				}
-                //response for download: statusCode: number, encryptedFileUri: ?string, errorId: ?string, precondition: ?string
-                NSMutableDictionary<NSString *, id> *responseDict = [NSMutableDictionary new];
-                [TUTFileUtil addStatusCodeToResponseDict:responseDict from:httpResponse];
-                [TUTFileUtil addEncFileUriToResponseDict:responseDict fileUri:filePath];
-                [TUTFileUtil addErrorIdHeaderToResponseDict:responseDict from:httpResponse];
-                [TUTFileUtil addPreconditionHeaderToResponseDict:responseDict from:httpResponse];
-                [TUTFileUtil addSuspensionTimeHeaderToResponseDict:responseDict from:httpResponse];
-                completion(responseDict, nil);
-                
-                
-			}] resume];
-		});
+                     toPath:(NSString * _Nonnull)filePath
+                withHeaders:(NSDictionary<NSString *, NSString *> * _Nonnull)headers
+                 completion:(void (^ _Nonnull)(NSDictionary<NSString *, id> * _Nullable response, NSError * _Nullable error))completion {
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    NSURL * url = [NSURL URLWithString:urlString];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
+    [request setHTTPMethod:@"GET"];
+    [request setURL:url];
+    [request setAllHTTPHeaderFields:headers];
+    
+    NSURLSessionConfiguration * configuration = [NSURLSessionConfiguration ephemeralSessionConfiguration];	// Ephemeral sessions do not store any data to disk; all caches, credential stores, and so on are kept in RAM.
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
+    
+    [[session dataTaskWithRequest: request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+      NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
+      if (error) {
+        completion(nil, error);
+        return;
+      }
+      
+      if ([httpResponse statusCode] == 200) {
+        NSError *error = nil;
+        if (error) {
+          completion(nil, error);
+          return;
+        }
+        [data writeToFile:filePath options: NSDataWritingAtomic error:&error];
+        if (error) {
+          completion(nil, error);
+          return;
+        }
+      }
+      //response for download: statusCode: number, encryptedFileUri: ?string, errorId: ?string, precondition: ?string
+      NSMutableDictionary<NSString *, id> *responseDict = [NSMutableDictionary new];
+      [TUTFileUtil addStatusCodeToResponseDict:responseDict from:httpResponse];
+      [TUTFileUtil addEncFileUriToResponseDict:responseDict fileUri:filePath];
+      [TUTFileUtil addErrorIdHeaderToResponseDict:responseDict from:httpResponse];
+      [TUTFileUtil addPreconditionHeaderToResponseDict:responseDict from:httpResponse];
+      [TUTFileUtil addSuspensionTimeHeaderToResponseDict:responseDict from:httpResponse];
+      completion(responseDict, nil);
+      
+      
+    }] resume];
+  });
 }
 
 + (NSString *) getEncryptedFolder:(NSError **)error {

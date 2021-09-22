@@ -9,13 +9,38 @@ import Foundation
  */
 @objc
 class BlobUtil : NSObject {
+
   @objc
-  func joinFiles(outputFileName: String, filePathsToJoin: [String], callback: @escaping (String?, Error?) -> Void) {
+  func getTempFileUri(fileName: String) -> String {
+    let encDirPath = try! TUTFileUtil.getEncryptedFolder()
+    return (encDirPath as NSString).appendingPathComponent(fileName)
+  }
+  
+  @objc
+  func hashFile(fileUri: String, callback: @escaping (String?, Error?) -> Void) {
     DispatchQueue.global(qos: .userInitiated).async {
-      let encDirPath = try! TUTFileUtil.getEncryptedFolder()
-      let outputFilePath = (encDirPath as NSString).appendingPathComponent(outputFileName)
+      let url = URL(fileURLWithPath: fileUri)
+      let data: Data
+      do {
+        data = try Data(contentsOf: url)
+      } catch {
+        callback(nil, error)
+        return
+      }
+      let hash = TUTCrypto.sha256(data)
+      callback(hash.base64EncodedString(), nil)
+    }
+  }
+  
+  @objc
+  func joinFiles(outputFilePath: String, filePathsToJoin: [String], callback: @escaping (String?, Error?) -> Void) {
+    DispatchQueue.global(qos: .userInitiated).async {
       let outputFileUri = URL(fileURLWithPath: outputFilePath)
-      FileManager.default.createFile(atPath: outputFilePath, contents: nil, attributes: nil)
+      let createdFile = FileManager.default.createFile(atPath: outputFilePath, contents: nil, attributes: nil)
+      guard createdFile else {
+        callback(nil, TUTErrorFactory.createError("Could not create file \(outputFileUri)"))
+        return
+      }
       let outputFileHandle = try! FileHandle(forWritingTo: outputFileUri)
       
       for inputFile in filePathsToJoin {

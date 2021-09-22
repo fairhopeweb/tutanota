@@ -33,7 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 			  completion:(void (^)(NSDictionary<NSString *, id> * _Nullable response, NSError * _Nullable error))completion;
 
 - (void)downloadFileFromUrl:(NSString * )urlString
-					forName:(NSString * )fileName
+					toPath:(NSString * )fileName
 				withHeaders:(NSDictionary<NSString *, NSString *> * )headers
 				 completion:(void (^)(NSDictionary<NSString *, id> * _Nullable response, NSError * _Nullable error))completion;
 

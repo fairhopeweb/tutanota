@@ -212,7 +212,7 @@ alarmManager:(TUTAlarmManager *)alarmManager
 		sendResponseBlock(NSNull.null, nil);
 	} else if ([@"download" isEqualToString:type]) {
 		[_fileUtil downloadFileFromUrl:arguments[0]
-							   forName:arguments[2]
+							   toPath:arguments[2]
 						   withHeaders:arguments[1]
 							completion:sendResponseBlock];
 	} else if ([@"open" isEqualToString:type]) {
@@ -302,10 +302,15 @@ alarmManager:(TUTAlarmManager *)alarmManager
     [self applyTheme:_themeManager.currentTheme];
     sendResponseBlock(NSNull.null, nil);
   } else if ([@"joinFiles" isEqualToString:type]) {
-    [self.blobUtil joinFilesWithOutputFileName:arguments[0] filePathsToJoin:arguments[1] callback:sendResponseBlock];
+    [self.blobUtil joinFilesWithOutputFilePath:arguments[0] filePathsToJoin:arguments[1] callback:sendResponseBlock];
   } else if ([@"splitFileIntoBlobs" isEqualToString:type]) {
     NSNumber *maxBlobSize = arguments[1];
     [self.blobUtil splitWithFileUri:arguments[0] maxBlobSize:maxBlobSize.intValue completion:sendResponseBlock];
+  } else if ([@"hashFile" isEqualToString:type]) {
+    [self.blobUtil hashFileWithFileUri:arguments[0] callback:sendResponseBlock];
+  } else if ([@"getTempFileUri" isEqualToString:type]) {
+    let filePath = [self.blobUtil getTempFileUriWithFileName:arguments[0]];
+    sendResponseBlock(filePath, nil);
 	} else {
 		let message = [NSString stringWithFormat:@"Unknown command: %@", type];
 		TUTLog(@"%@", message);
