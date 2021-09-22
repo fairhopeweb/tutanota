@@ -8,12 +8,12 @@
 
 #import <UIKit/UIKit.h>
 #import "Utils/TUTUserPreferenceFacade.h"
-#import "TUTAlarmManager.h"
+
 
 @interface TUTViewController : UIViewController<UIScrollViewDelegate>
 
 - (instancetype)initWithPreferenceFacade:(TUTUserPreferenceFacade *)preferenceFacade
-                            alarmManager:(TUTAlarmManager *)alarmManager;
+                            alarmManager:(NSObject *)alarmManager;
 
 @end
 

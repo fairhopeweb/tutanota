@@ -11,6 +11,7 @@
 #import "TUTEncodingConverter.h"
 #import <Foundation/Foundation.h>
 #import "TUTCrypto.h"
+#import "TUTBigNum.h"
 #import "Swiftier.h"
 #import <openssl/bn.h>
 #import <openssl/ossl_typ.h>
@@ -61,9 +62,9 @@ static int mock_rand_bytes(unsigned char *buf, int num)
 - (void) testBignumToB64 {
 	BIGNUM *number = BN_new();
 	BN_dec2bn(&number, "1");
-	NSString *b64Number = [TUTCrypto toB64:number];
+	NSString *b64Number = [TUTBigNum toB64:number];
 	BIGNUM *convertedNumber = BN_new();
-	[TUTCrypto toBIGNUM:convertedNumber fromB64:b64Number];
+	[TUTBigNum toBIGNUM:convertedNumber fromB64:b64Number];
 	XCTAssertEqual(0, BN_cmp(number, convertedNumber));
 }
 
@@ -222,7 +223,7 @@ static int mock_rand_bytes(unsigned char *buf, int num)
 			//let nextParamValue = [TUTEncodingConverter bytesToBase64: [TUTEncodingConverter hexToBytes:nextParamValueHex]];
 			var nextParamValue = BN_new();
 			BN_hex2bn(&nextParamValue, nextParamValueHex.UTF8String);
-			[key addObject:[TUTCrypto toB64:nextParamValue]];
+			[key addObject:[TUTBigNum toB64:nextParamValue]];
 			pos += nextParamLen;
 		}
 		//_validateKeyLength(key)

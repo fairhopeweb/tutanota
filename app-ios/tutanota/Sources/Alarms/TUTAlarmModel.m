@@ -19,7 +19,6 @@
                            interval:(NSInteger)interval
                             endType:(TUTRepeatEndType)endType
                             endValue:(long long)endValue
-                             trigger:(NSString *)trigger
                       localTimeZone:(NSTimeZone *)localtimeZone
                        scheduleAhead:(NSInteger)scheduleAhead
                                block:(void(^)(int occurrence, NSDate *occurrencetime))block {
@@ -41,10 +40,9 @@
     while (occurrencesAfterNow < scheduleAhead &&
            (endType != TUTRepeatEndTypeCount || occurrences < endValue)) {
         let occurrenceDate = [cal dateByAddingUnit:calendarUnit value:interval * occurrences toDate:calcEventStart options:0];
-        let alarmDate = [TUTAlarmModel alarmTimeWithTrigger:trigger eventTime:occurrenceDate];
         if (endDate != nil && [occurrenceDate compare:endDate] != NSOrderedAscending) {
             break;
-        } else if ([now compare:alarmDate] != NSOrderedDescending) { // Only schedule alarms in the future
+        } else if ([now compare:occurrenceDate] != NSOrderedDescending) { // Only schedule alarms in the future
             block(occurrences, occurrenceDate);
             occurrencesAfterNow++;
         }

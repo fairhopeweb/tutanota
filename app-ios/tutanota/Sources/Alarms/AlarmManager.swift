@@ -25,7 +25,8 @@ enum HttpStatusCode: Int {
   case serviceUnavailable = 503
 }
 
-class AlarmManager {
+@objc
+class AlarmManager : NSObject {
   private let keychainManager: KeychainManager
   private let userPreference: TUTUserPreferenceFacade
   private let fetchQueue: OperationQueue
@@ -37,7 +38,8 @@ class AlarmManager {
     self.fetchQueue.maxConcurrentOperationCount = 1
   }
   
-  func fetchMissedNotifications(completionHandler: @escaping (Error?) -> Void) {
+  @objc
+  func fetchMissedNotifications(_ completionHandler: @escaping (Error?) -> Void) {
     self.fetchQueue.addAsyncOperation {[weak self] queueCompletionHandler in
       guard let self = self else {
         return
@@ -90,21 +92,19 @@ class AlarmManager {
           self.unscheduleAllAlarms(userId: userId)
           self.userPreference.removeUser(userId)
           queueCompletionHandler()
-          self.fetchMissedNotifications(completionHandler: completionHandler)
+          self.fetchMissedNotifications(completionHandler)
         case .serviceUnavailable, .tooManyRequests:
           let suspensionTime = extractSuspensionTime(from: httpResponse)
           TUTSLog("SericeUnavailable when downloading missed notification, waiting for \(suspensionTime)s")
-          // TODO: check that time is in seconds
           DispatchQueue.main
             .asyncAfter(deadline: .now() + .seconds(suspensionTime)) {
-              self.fetchMissedNotifications(completionHandler: completionHandler)
+              self.fetchMissedNotifications(completionHandler)
             }
           queueCompletionHandler()
         case .notFound:
           complete(error: nil)
         case .ok:
           self.userPreference.lastMissedNotificationCheckTime = Date()
-          // TODO: parse missed notification etc
           let json: [String: Any]
           do {
             json = try JSONSerialization.jsonObject(with: data!, options: []) as! [String : Any]
@@ -115,7 +115,7 @@ class AlarmManager {
           }
           let missedNotification = TUTMissedNotification .fromJSON(json)
           self.userPreference.lastProcessedNotificationId = missedNotification.lastProcessedNotificationId
-          self.processNewAlarms(missedNotification.alarmNotifications, completionHandler: complete)
+          self.processNewAlarms(missedNotification.alarmNotifications, completion: complete)
         default:
           let error = NSError(domain: TUT_NETWORK_ERROR, code: httpResponse.statusCode, userInfo: [
             "message": "Failed to fetch missed notification"
@@ -126,7 +126,8 @@ class AlarmManager {
     }
   }
   
-  func processNewAlarms(_ notifications: Array<TUTAlarmNotification>, completionHandler: @escaping (Error?) -> Void) {
+  @objc
+  func processNewAlarms(_ notifications: Array<TUTAlarmNotification>, completion: @escaping (Error?) -> Void) {
     DispatchQueue.global(qos: .utility).async {
       var savedNotifications = self.userPreference.alarms()
       var resultError: Error?
@@ -141,15 +142,62 @@ class AlarmManager {
       
       TUTSLog("Finished processing \(notifications.count) alarms")
       self.userPreference.storeAlarms(savedNotifications)
-      completionHandler(resultError)
+      completion(resultError)
     }
+  }
+  
+  @objc
+  func hasNotificationTTLExpired() -> Bool {
+    guard let lastMissedNotificationCheckTime = userPreference.lastMissedNotificationCheckTime else {
+      return false
+    }
+    let sinceNow = lastMissedNotificationCheckTime.timeIntervalSinceNow
+    // Important: timeIntervalSinceNow is negative if it's in the past
+    return sinceNow < 0 && Int64(abs(sinceNow)) > MISSED_NOTIFICATION_TTL_SEC
+  }
+  
+  @objc
+  func resetStoredState() {
+    TUTSLog("Resetting stored state")
+    self.unscheduleAllAlarms(userId: nil)
+    userPreference.clear()
+    do {
+      try keychainManager.removePushIdentifierKeys()
+    } catch {
+      TUTSLog("Faied to remove pushIdentifier keys \(error)")
+    }
+  }
+  
+  @objc
+  func rescheduleAlarms() {
+    TUTSLog("Re-scheduling alarms")
+    DispatchQueue.global(qos: .background).async {
+      for notification in self.savedAlarms() {
+        autoreleasepool {
+          do {
+            try self.scheduleAlarm(notification)
+          } catch {
+            TUTSLog("Error when re-scheduling alarm \(notification) \(error)")
+          }
+        }
+      }
+    }
+  }
+  
+  private func savedAlarms() -> Set<TUTAlarmNotification> {
+    let savedNotifications = self.userPreference.alarms()
+    let set = Set(savedNotifications)
+    if set.count != savedNotifications.count {
+      TUTSLog("Duplicated alarms detected, re-saving...")
+      self.userPreference.storeAlarms(Array(set))
+    }
+    return set
   }
   
   private func handleAlarmNotification(
     _ alarm: TUTAlarmNotification,
     existringAlarms: inout Array<TUTAlarmNotification>
   ) throws {
-    // TODO
     switch Operation(rawValue: alarm.operation) {
     case .Create:
       do {
@@ -177,7 +225,17 @@ class AlarmManager {
   }
   
   private func unscheduleAllAlarms(userId: String?) {
-    // TODO
+    let alarms = self.userPreference.alarms()
+    for alarm in alarms {
+      if userId != nil && userId != alarm.user {
+        continue
+      }
+      do {
+        try self.unscheduleAlarm(alarm)
+      } catch {
+        TUTSLog("Error while unscheduling of all alarms \(error)")
+      }
+    }
   }
   
   private func missedNotificationUrl(origin: String, pushIdentifier: String) -> String {
@@ -220,6 +278,8 @@ class AlarmManager {
   }
   
   private func unscheduleAlarm(_ alarmNotification: TUTAlarmNotification) throws {
+    let alarmIdentifier = alarmNotification.alarmInfo.alarmIdentifier
+    let occurrenceIds: [String]
     if let repeatRule = alarmNotification.repeatRule {
       let sessionKey = self.resolveSessionkey(alarmNotification: alarmNotification)
       guard let sessionKey = sessionKey else {
@@ -236,12 +296,14 @@ class AlarmManager {
         repeatRule: repeatRule,
         sessionKey: sessionKey
       )
-      let alarmIdentifier = alarmNotification.alarmInfo.alarmIdentifier
-      let occurenceIds = ocurrences.map { o in
+      occurrenceIds = ocurrences.map { o in
         ocurrenceIdentifier(alarmIdentifier: alarmIdentifier, occurrence: o.occurrence)
       }
-      
+    } else {
+      occurrenceIds = [ocurrenceIdentifier(alarmIdentifier: alarmIdentifier, occurrence: 0)]
     }
+    TUTSLog("Cancelling alarm \(alarmIdentifier)")
+    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: occurrenceIds)
   }
   
   private func resolveSessionkey(alarmNotification: TUTAlarmNotification) -> Data? {

@@ -20,7 +20,6 @@
 #import "Utils/TUTLog.h"
 #import "Files/TUTFileUtil.h"
 #import "tutanota-Swift.h"
-#import "TUTAlarmManager.h"
 
 // Frameworks
 #import <WebKit/WebKit.h>
@@ -48,7 +47,7 @@ typedef void(^VoidCallback)(void);
 @property (readonly, nonnull) NSMutableArray<VoidCallback> *requestsBeforeInit;
 @property (readonly, nonnull) KeychainManager *keychainManager;
 @property (readonly, nonnull) TUTUserPreferenceFacade *userPreferences;
-@property (readonly, nonnull) TUTAlarmManager *alarmManager;
+@property (readonly, nonnull) AlarmManager *alarmManager;
 @property (readonly, nonnull) ThemeManager *themeManager;
 @property BOOL isDarkTheme;
 @end
@@ -56,7 +55,7 @@ typedef void(^VoidCallback)(void);
 @implementation TUTViewController
 
 - (instancetype)initWithPreferenceFacade:(TUTUserPreferenceFacade *)preferenceFacade
-alarmManager:(TUTAlarmManager *)alarmManager
+alarmManager:(AlarmManager *)alarmManager
 {
 	self = [super init];
 	if (self) {

@@ -30,7 +30,6 @@
     let eventStart = [self getDate:2019:6:2:12:timeZone];
     let eventEnd = [self getDate:2019:6:2:12:timeZone];
     NSMutableArray<NSDate *> *occurrences = [NSMutableArray new];
-    let trigger = @"1H";
     
     [TUTAlarmModel iterateRepeatingAlarmWithNow:now
                                         timeZone:timeZone
@@ -40,18 +39,17 @@
                                         interval:1
                                          endType:TUTRepeatEndTypeNever
                                         endValue:0
-                                         trigger:trigger
                                   localTimeZone:[NSTimeZone timeZoneWithName:timeZone]
                                    scheduleAhead:4
-                                          block:^(NSDate * _Nonnull time, int occurrence, NSDate * _Nonnull occurrencetime) {
-                                       [occurrences addObject:time];
+                                          block:^(int occurrence, NSDate * _Nonnull occurrencetime) {
+                                       [occurrences addObject:occurrencetime];
                                    }];
     
     let expected = @[
-                     [self getDate:2019:6:2:11:timeZone],
-                     [self getDate:2019:6:9:11:timeZone],
-                     [self getDate:2019:6:16:11:timeZone],
-                     [self getDate:2019:6:23:11:timeZone]
+                     [self getDate:2019:6:2:12:timeZone],
+                     [self getDate:2019:6:9:12:timeZone],
+                     [self getDate:2019:6:16:12:timeZone],
+                     [self getDate:2019:6:23:12:timeZone]
                      ];
     
     XCTAssertEqualObjects(occurrences, expected);
@@ -62,10 +60,9 @@
     let timeZone = @"Europe/Berlin";
     let repeatRuleTimeZone = @"Asia/Anadyr";
     let now = [self getDate:2019:5:1:0:timeZone];
-    let eventStart = [TUTAlarmModel allDayDateUTC:[self getDate:2019:5:2:0:timeZone]];
-    let eventEnd = [TUTAlarmModel allDayDateUTC:[self getDate:2019:5:3:0:timeZone]];
-    let repeatEnd = [TUTAlarmModel allDayDateUTC:[self getDate:2019:5:4:0:timeZone]];
-    let trigger = @"1D";
+    let eventStart = [TUTAlarmModel allDayDateUTC:[self getDate:2019:5:1:0:timeZone]];
+    let eventEnd = [TUTAlarmModel allDayDateUTC:[self getDate:2019:5:2:0:timeZone]];
+    let repeatEnd = [TUTAlarmModel allDayDateUTC:[self getDate:2019:5:3:0:timeZone]];
     
     NSMutableArray<NSDate *> *occurrences = [NSMutableArray new];
     
@@ -78,11 +75,10 @@
                                        interval:1
                                         endType:TUTRepeatEndTypeUntilDate
                                        endValue:repeatEnd.timeIntervalSince1970 * 1000
-                                        trigger:trigger
                                   localTimeZone:[NSTimeZone timeZoneWithName:timeZone]
                                   scheduleAhead:4
-                                          block:^(NSDate * _Nonnull time, int occurrence, NSDate * _Nonnull occurrencetime) {
-                                      [occurrences addObject:time];
+                                          block:^(int occurrence, NSDate * _Nonnull occurrencetime) {
+                                      [occurrences addObject:occurrencetime];
                                   }];
     
     let expected = @[

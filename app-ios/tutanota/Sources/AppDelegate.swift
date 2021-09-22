@@ -8,7 +8,7 @@ class AppDelegate : UIResponder,
   
   private var pushTokenCallback: ((String?, Error?) -> Void)?
   private let userPreferences = TUTUserPreferenceFacade()
-  private var alarmManager: TUTAlarmManager!
+  private var alarmManager: AlarmManager!
   private var viewController: TUTViewController!
   
   @objc
@@ -34,7 +34,8 @@ class AppDelegate : UIResponder,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]?
   ) -> Bool {
     TUTSLog("Start Tutanota \(String(describing: launchOptions))")
-    self.alarmManager = TUTAlarmManager(userPreferences: userPreferences)
+    let keychainManager = KeychainManager()
+    self.alarmManager = AlarmManager(keychainManager: keychainManager, userPreference: userPreferences)
     self.window = UIWindow(frame: UIScreen.main.bounds)
     self.viewController = TUTViewController(
       preferenceFacade: self.userPreferences,

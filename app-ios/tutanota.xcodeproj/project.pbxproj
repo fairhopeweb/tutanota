@@ -31,7 +31,6 @@
 		3D378EFC2536F79A0001F1F3 /* TUTFileViewer.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D891F042105B12F0031E528 /* TUTFileViewer.m */; settings = {COMPILER_FLAGS = "-Itutanota/include"; }; };
 		3D378EFD2536F79A0001F1F3 /* TUTMissedNotification.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D57BEB522B796CD00205B1B /* TUTMissedNotification.m */; };
 		3D378EFE2536F79A0001F1F3 /* TUTIcons.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D87ECE5212D9EB000FD7315 /* TUTIcons.m */; };
-		3D378EFF2536F79A0001F1F3 /* TUTAlarmManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 3DD6D08822AAAE9800C0E312 /* TUTAlarmManager.m */; };
 		3D378F002536F79A0001F1F3 /* TUTUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 3DB9A20D22BA5C23004EA08F /* TUTUtils.m */; };
 		3D378F012536F79A0001F1F3 /* TUTErrorFactory.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D74536621089F4800B16F2E /* TUTErrorFactory.m */; };
 		3D378F022536F79A0001F1F3 /* TUTEncodingConverter.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D891F022105B12E0031E528 /* TUTEncodingConverter.m */; settings = {COMPILER_FLAGS = "-Itutanota/include"; }; };
@@ -210,7 +209,6 @@
 		3DD4A08B20F8C6240086EB36 /* TUTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3DD4A08A20F8C6240086EB36 /* TUTViewController.m */; settings = {COMPILER_FLAGS = "-Itutanota/include"; }; };
 		3DD4A09020F8C6260086EB36 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3DD4A08F20F8C6260086EB36 /* Assets.xcassets */; };
 		3DD4A09320F8C6260086EB36 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3DD4A09120F8C6260086EB36 /* LaunchScreen.storyboard */; };
-		3DD6D08922AAAE9800C0E312 /* TUTAlarmManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 3DD6D08822AAAE9800C0E312 /* TUTAlarmManager.m */; };
 		3DD7A23522C5FD7500876B85 /* TUTAlarmModelTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 3DD7A23422C5FD7500876B85 /* TUTAlarmModelTest.m */; };
 		3DD7A23822C604F000876B85 /* TUTAlarmModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 3DD7A23722C604F000876B85 /* TUTAlarmModel.m */; };
 		3DE1E44526666F0A0018C9DE /* UIColor+utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE1E44426666F0A0018C9DE /* UIColor+utils.swift */; };
@@ -364,8 +362,6 @@
 		3DD4A09420F8C6260086EB36 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3DD4A09B20F8C6260086EB36 /* tutanotaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = tutanotaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3DD4A0A120F8C6260086EB36 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		3DD6D08722AAAE9800C0E312 /* TUTAlarmManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUTAlarmManager.h; sourceTree = "<group>"; };
-		3DD6D08822AAAE9800C0E312 /* TUTAlarmManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUTAlarmManager.m; sourceTree = "<group>"; };
 		3DD7A23422C5FD7500876B85 /* TUTAlarmModelTest.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUTAlarmModelTest.m; sourceTree = "<group>"; };
 		3DD7A23622C604F000876B85 /* TUTAlarmModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUTAlarmModel.h; sourceTree = "<group>"; };
 		3DD7A23722C604F000876B85 /* TUTAlarmModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUTAlarmModel.m; sourceTree = "<group>"; };
@@ -446,8 +442,6 @@
 				3D74536221089D5700B16F2E /* Crypto */,
 				3DD4A08920F8C6240086EB36 /* TUTViewController.h */,
 				3DD4A08A20F8C6240086EB36 /* TUTViewController.m */,
-				3DD6D08722AAAE9800C0E312 /* TUTAlarmManager.h */,
-				3DD6D08822AAAE9800C0E312 /* TUTAlarmManager.m */,
 				3DC299F9267358AF00E1E79F /* ThemeManager.swift */,
 				3D0EB1F826F49E36002E5102 /* AppDelegate.swift */,
 			);
@@ -1507,7 +1501,6 @@
 				3D378EFC2536F79A0001F1F3 /* TUTFileViewer.m in Sources */,
 				3D378EFD2536F79A0001F1F3 /* TUTMissedNotification.m in Sources */,
 				3D378EFE2536F79A0001F1F3 /* TUTIcons.m in Sources */,
-				3D378EFF2536F79A0001F1F3 /* TUTAlarmManager.m in Sources */,
 				3D378F002536F79A0001F1F3 /* TUTUtils.m in Sources */,
 				3D378F012536F79A0001F1F3 /* TUTErrorFactory.m in Sources */,
 				3D378F022536F79A0001F1F3 /* TUTEncodingConverter.m in Sources */,
@@ -1547,7 +1540,6 @@
 				3D891F0F2105B12F0031E528 /* TUTFileViewer.m in Sources */,
 				3D57BEB622B796CD00205B1B /* TUTMissedNotification.m in Sources */,
 				3D87ECE6212D9EB000FD7315 /* TUTIcons.m in Sources */,
-				3DD6D08922AAAE9800C0E312 /* TUTAlarmManager.m in Sources */,
 				3DB9A20E22BA5C23004EA08F /* TUTUtils.m in Sources */,
 				3D74536721089F4800B16F2E /* TUTErrorFactory.m in Sources */,
 				3D891F0D2105B12F0031E528 /* TUTEncodingConverter.m in Sources */,
@@ -2371,6 +2363,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = JKCH89Z3M9;
+				HEADER_SEARCH_PATHS = "\"${PROJECT_DIR}/tutanota/include\"/**";
 				INFOPLIST_FILE = tutanotaTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2395,6 +2388,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = JKCH89Z3M9;
+				HEADER_SEARCH_PATHS = "\"${PROJECT_DIR}/tutanota/include\"/**";
 				INFOPLIST_FILE = tutanotaTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
