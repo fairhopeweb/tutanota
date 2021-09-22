@@ -262,11 +262,11 @@ o.spec("DesktopDownloadManagerTest", function () {
 		o(mocks.electronMock.shell.openPath.callCount).equals(2)
 	})
 
-	o("downloadNative, no error", async function () {
+	o("download, no error", async function () {
 		const mocks = standardMocks()
 		const dl = makeMockedDownloadManager(mocks)
 		const res = new mocks.netMock.Response(200)
-		const dlPromise = dl.download("some://url/file", {v: "foo", accessToken: "bar"}, "nativelyDownloadedFile")
+		const dlPromise = dl.download("some://url/file", {v: "foo", accessToken: "bar"}, "/some/path/tutanota/download/nativelyDownloadedFile")
 		// delay so that dl can set up it's callbacks on netMock before we try to access them
 		await delay(5)
 		mocks.netMock.ClientRequest.mockedInstances[0].callbacks['response'](res)
@@ -290,7 +290,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 		o(res.pipe.args[0]).deepEquals(ws)
 	})
 
-	o("downloadNative, error gets cleaned up", async function () {
+	o("download, error gets cleaned up", async function () {
 		const mocks = standardMocks()
 
 		const dl = makeMockedDownloadManager(mocks)
