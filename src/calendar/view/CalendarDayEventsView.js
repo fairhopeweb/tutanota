@@ -24,7 +24,7 @@ import {logins} from "../../api/main/LoginController"
 import {Time} from "../../api/common/utils/Time"
 import {getPosAndBoundsFromMouseEvent} from "../../gui/base/GuiUtils"
 import type {CalendarEventBubbleClickHandler, GroupColors} from "./CalendarView"
-import {getTimeFromMouseClick} from "./CalendarGuiUtils"
+import {getTimeFromMousePos} from "./CalendarGuiUtils"
 
 export type Attrs = {
 	onEventClicked: CalendarEventBubbleClickHandler,
@@ -54,7 +54,7 @@ export class CalendarDayEventsView implements MComponent<Attrs> {
 					m.redraw()
 				},
 				onmousemove: (mouseEvent: MouseEvent) => {
-					const time = getTimeFromMouseClick(getPosAndBoundsFromMouseEvent(mouseEvent), 4)
+					const time = getTimeFromMousePos(getPosAndBoundsFromMouseEvent(mouseEvent), 4)
 					attrs.setTimeUnderMouse(time)
 				}
 			},

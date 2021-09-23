@@ -36,14 +36,13 @@ import type {CalendarEventBubbleClickHandler, CalendarViewTypeEnum, EventDateUpd
 import {CalendarViewType, SELECTED_DATE_INDICATOR_THICKNESS} from "./CalendarView"
 import type {MousePos} from "./EventDragHandler"
 import {EventDragHandler} from "./EventDragHandler"
-import type {MousePosAndBounds} from "../../gui/base/GuiUtils"
 import {getPosAndBoundsFromMouseEvent} from "../../gui/base/GuiUtils"
 import {locator} from "../../api/main/MainLocator"
 import {ofClass} from "../../api/common/utils/PromiseUtils"
 import {UserError} from "../../api/main/UserError"
 import {showUserError} from "../../misc/ErrorHandlerImpl"
 import {theme} from "../../gui/theme"
-import {getDateFromMouseClick, renderCalendarSwitchLeftButton, renderCalendarSwitchRightButton} from "./CalendarGuiUtils"
+import {getDateFromMousePos, renderCalendarSwitchLeftButton, renderCalendarSwitchRightButton} from "./CalendarGuiUtils"
 
 type CalendarMonthAttrs = {
 	selectedDate: Date,
@@ -167,7 +166,7 @@ export class CalendarMonthView implements MComponent<CalendarMonthAttrs>, Lifecy
 				onmousemove: mouseEvent => {
 					const posAndBoundsFromMouseEvent = getPosAndBoundsFromMouseEvent(mouseEvent)
 					this._lastMousePos = posAndBoundsFromMouseEvent
-					const currentDate = getDateFromMouseClick(posAndBoundsFromMouseEvent, weeks.map(week => week.map(day => day.date)))
+					const currentDate = getDateFromMousePos(posAndBoundsFromMouseEvent, weeks.map(week => week.map(day => day.date)))
 					this._dayUnderMouse = currentDate
 					this._eventDragHandler.handleDrag(currentDate, posAndBoundsFromMouseEvent)
 				},
@@ -189,14 +188,6 @@ export class CalendarMonthView implements MComponent<CalendarMonthAttrs>, Lifecy
 			this._eventDragHandler.endDrag(this._dayUnderMouse, callback)
 			    .catch(ofClass(UserError, showUserError))
 		}
-	}
-
-	_getDateUnderMouseEvent({x, y, targetWidth, targetHeight}: MousePosAndBounds, weeks: Array<Array<CalendarDay>>): Date {
-		const unitHeight = targetHeight / 6
-		const unitWidth = targetWidth / 7
-		const currentSquareX = Math.floor(x / unitWidth)
-		const currentSquareY = Math.floor(y / unitHeight)
-		return weeks[currentSquareY][currentSquareX].date
 	}
 
 	_renderDay(attrs: CalendarMonthAttrs, day: CalendarDay, today: Date, weekDayNumber: number): Children {

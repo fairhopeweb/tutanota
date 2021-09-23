@@ -7,7 +7,6 @@ import {
 	CALENDAR_EVENT_HEIGHT,
 	combineDateWithTime,
 	DEFAULT_HOUR_OF_DAY,
-	TEMPORARY_EVENT_OPACITY,
 	eventEndsAfterDay,
 	eventStartsBefore,
 	getDiffInDays,
@@ -20,7 +19,8 @@ import {
 	getTimeTextFormatForLongEvent,
 	getTimeZone,
 	getWeekNumber,
-	layOutEvents
+	layOutEvents,
+	TEMPORARY_EVENT_OPACITY
 } from "../date/CalendarUtils"
 import {CalendarDayEventsView, calendarDayTimes} from "./CalendarDayEventsView"
 import {isAllDayEvent} from "../../api/common/utils/CommonCalendarUtils"

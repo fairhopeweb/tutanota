@@ -3,11 +3,11 @@ import type {CalendarEvent} from "../../api/entities/tutanota/CalendarEvent"
 import {CalendarEventTypeRef} from "../../api/entities/tutanota/CalendarEvent"
 import m from "mithril"
 import {EntityClient} from "../../api/common/EntityClient"
-import {getDiffInHours, getTimeZone, isEventBetweenDays} from "../date/CalendarUtils"
 import {clone, neverNull} from "../../api/common/utils/Utils"
 import {remove} from "../../api/common/utils/ArrayUtils"
-import {isAllDayEvent} from "../../api/common/utils/CommonCalendarUtils"
 import type {EventDateUpdateHandler} from "./CalendarView"
+import {getDiffInHours, getTimeZone, isEventBetweenDays} from "../date/CalendarUtils"
+import {isAllDayEvent} from "../../api/common/utils/CommonCalendarUtils"
 
 const DRAG_THRESHOLD = 10
 
@@ -31,9 +31,8 @@ export type EventsOnDays = {
 }
 
 /**
- * Handles logic for dragging events in the calendar child views
- * This includes tracking events that have been moved and need to
- * be rendered while still waiting for entity updates
+ * Handles logic for dragging events in the calendar child views.
+ * This includes tracking events that have been moved and need to be rendered while still waiting for entity updates.
  */
 export class EventDragHandler {
 
@@ -68,7 +67,7 @@ export class EventDragHandler {
 		return this._isDragging
 	}
 
-	get transientEvents(): $ReadOnlyArray<CalendarEvent> {
+	get transientEvents(): Array<CalendarEvent> {
 		return this._transientEvents
 	}
 
@@ -81,6 +80,10 @@ export class EventDragHandler {
 		return isChanged
 	}
 
+	/**
+	 * Call on mouse down, to initialize an upcoming drag event.
+	 * Doesn't start the drag yet, because we want to wait until the mouse has moved beyond some threshhold
+	 */
 	prepareDrag(calendarEvent: CalendarEvent, dateUnderMouse: Date, mousePos: MousePos) {
 		this._data = {
 			originalEvent: calendarEvent,
@@ -93,11 +96,17 @@ export class EventDragHandler {
 		this._isDragging = false
 	}
 
+	/**
+	 * Call on mouse move.
+	 * Will be a no-op if the prepareDrag hasn't been called or if cancelDrag has been called since the last prepareDrag call
+	 * The dragging doesn't actually begin until the distance between the mouse and it's original location is greater than some threshhold
+	 */
 	handleDrag(dateUnderMouse: Date, mousePos: MousePos) {
 
 		if (this._data) {
 			const {originalEvent, originalDateUnderMouse, eventClone} = this._data
 
+			// Calculate the distance from the original mouse location to the current mouse location
 			// We don't want to actually start the drag until the mouse has moved by some distance
 			// So as to avoid accidentally dragging when you meant to click but moved the mouse a little
 			const distanceX = this._data.originalMousePos.x - mousePos.x
@@ -119,6 +128,11 @@ export class EventDragHandler {
 		}
 	}
 
+	/**
+	 * Call on mouseup or mouseleave. Ends a drag event if one has been started, and hasn't been cancelled.
+	 *
+	 * This function will only trigger when prepareDrag has been called, and then handleDrag has also been called with enough mouse movement
+	 */
 	async endDrag(dateUnderMouse: Date, updateEventCallback: EventDateUpdateHandler): Promise<void> {
 
 		if (this._isDragging && this._data) {
@@ -185,7 +199,12 @@ export class EventDragHandler {
 
 	/**
 	 * Given a events and days, return the long and short events of that range of days
-	 * Handled here because we are tracking temporary events
+	 * This is handled here because we are tracking temporary events in the EventDragHandler,
+	 * And we detect events that should be removed based on their UID + start and end time
+	 *
+	 * @param days: The range of days from which events should be returned
+	 * @param eventsForDays: A map from start-of-day timestamp to a list of events
+	 * @param hiddenCalendars: Calendars from which events shouldn't be returned
 	 * @returns    shortEvents: Array<Array<CalendarEvent>>, short events per day.,
 	 *             longEvents: Array<CalendarEvent>: long events over the whole range,
 	 *             days: Array<Date>: the original days that were passed in

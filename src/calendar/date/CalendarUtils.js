@@ -825,6 +825,9 @@ export function getDateIndicator(day: Date, selectedDate: ?Date): string {
 	}
 }
 
+/**
+ * Determine what format the time of an event should be rendered in given a surrounding time period
+ */
 export function getTimeTextFormatForLongEvent(ev: CalendarEvent, startDay: Date, endDay: Date, zone: string): ?EventTextTimeOptionEnum {
 	const startsBefore = eventStartsBefore(startDay, zone, ev)
 	const endsAfter = eventEndsAfterOrOn(endDay, zone, ev)

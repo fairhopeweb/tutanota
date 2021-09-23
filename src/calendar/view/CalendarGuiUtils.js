@@ -70,7 +70,7 @@ export function askIfShouldSendCalendarUpdatesToAttendees(): Promise<"yes" | "no
  * Map the location of a mouse click on an element to a give date, given a 2d array of days. Each element in weeks must have the same length
  * there should be neither zero weeks, nor zero length weeks
  */
-export function getDateFromMouseClick({x, y, targetWidth, targetHeight}: MousePosAndBounds, weeks: Array<Array<Date>>): Date {
+export function getDateFromMousePos({x, y, targetWidth, targetHeight}: MousePosAndBounds, weeks: Array<Array<Date>>): Date {
 	const unitHeight = targetHeight / weeks.length
 	const unitWidth = targetWidth / firstThrow(weeks).length
 	const currentSquareX = Math.floor(x / unitWidth)
@@ -84,7 +84,7 @@ export function getDateFromMouseClick({x, y, targetWidth, targetHeight}: MousePo
  * @param targetHeight
  * @param hourDivision: how many times to divide the hour
  */
-export function getTimeFromMouseClick({y, targetHeight}: MousePosAndBounds, hourDivision: number): Time {
+export function getTimeFromMousePos({y, targetHeight}: MousePosAndBounds, hourDivision: number): Time {
 	const sectionHeight = targetHeight / 24
 	const hour = y / sectionHeight
 	const hourRounded = Math.floor(hour)

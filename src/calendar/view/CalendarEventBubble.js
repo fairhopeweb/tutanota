@@ -75,6 +75,9 @@ export class CalendarEventBubble implements MComponent<CalendarEventBubbleAttrs>
 	}
 
 	renderContent({height: maybeHeight, text, secondLineText, color}: CalendarEventBubbleAttrs): Children {
+
+		// If the bubble has 2 or more lines worth of vertical space, then we will render the text + the secondLineText on separate lines
+		// Otherwise we will combine them onto a single line
 		const height = maybeHeight ?? lineHeight
 		const isMultiline = height >= lineHeight * 2
 
