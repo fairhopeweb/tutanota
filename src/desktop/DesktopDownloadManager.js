@@ -200,10 +200,7 @@ export class DesktopDownloadManager {
 		downcast(this._fs.rmdirSync)(this.getTutanotaTempPath(), {recursive: true})
 	}
 
-	async joinFiles(filename: string, files: Array<string>): Promise<string> {
-		const downloadDirectory = await this.getTutanotaTempDirectory("download")
-		const fileUri = path.join(downloadDirectory, filename)
-
+	async joinFiles(fileUri: string, files: Array<string>): Promise<string> {
 		const writeStream = this._fs.createWriteStream(fileUri, {autoClose: false})
 
 		for (const infile of files) {
