@@ -18,6 +18,7 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.content.FileProvider;
 
 import org.apache.commons.io.IOUtils;
@@ -43,6 +44,9 @@ import java.io.SequenceInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -99,13 +103,15 @@ public class FileUtil {
 		}
 	}
 
+	@RequiresApi(api = Build.VERSION_CODES.O)
 	String joinFiles(final String fileUri, List<String> filesToJoin) throws IOException {
 		List<InputStream> inStreams = new ArrayList<InputStream>(filesToJoin.size());
 		for (String infile : filesToJoin) {
 			inStreams.add(new FileInputStream(new File(Uri.parse(infile).getPath())));
 		}
-		File written = writeFileToEncryptedDir(fileUri, new SequenceInputStream(Collections.enumeration(inStreams)));
-		return Utils.fileToUri(written);
+		Path output = Paths.get(fileUri);
+		writeFile(output, new SequenceInputStream(Collections.enumeration(inStreams)));
+		return Utils.pathToUri(output);
 	}
 
 	Promise<Object, Exception, Void> openFileChooser() {
@@ -314,6 +320,7 @@ public class FileUtil {
 		}
 	}
 
+	@RequiresApi(api = Build.VERSION_CODES.O)
 	JSONObject download(final String sourceUrl, final JSONObject headers, final String filePath) throws IOException, JSONException {
 		HttpURLConnection con = null;
 		try {
@@ -326,19 +333,16 @@ public class FileUtil {
 			addHeadersToRequest(con, headers);
 			con.connect();
 
-			File encryptedFile = null;
+			Path encryptedPath = null;
 			if (con.getResponseCode() == 200) {
 				InputStream inputStream = con.getInputStream();
-				encryptedFile = new File(filePath);
-				File path = encryptedFile.getParentFile();
-				path.mkdirs();
-				IOUtils.copyLarge(inputStream, new FileOutputStream(encryptedFile),
-						new byte[COPY_BUFFER_SIZE]);
+				encryptedPath = Paths.get(filePath);
+				writeFile(encryptedPath, inputStream);
 			}
 
 			JSONObject result = new JSONObject()
 					.put("statusCode", con.getResponseCode())
-					.put("encryptedFileUri", encryptedFile != null ? Utils.fileToUri(encryptedFile) : JSONObject.NULL)
+					.put("encryptedFileUri", encryptedPath != null ? Utils.pathToUri(encryptedPath) : JSONObject.NULL)
 					.put("errorId", con.getHeaderField("Error-Id")) // see ResourceConstants.ERROR_ID_HEADER
 					.put("precondition", con.getHeaderField("Precondition")) // see ResourceConstants.PRECONDITION_HEADER
 					.put("suspensionTime", con.getHeaderField("Retry-After"));
@@ -353,28 +357,33 @@ public class FileUtil {
 		}
 	}
 
-	private File writeFileToDir(String filename, InputStream inputStream, String directory) throws IOException {
-		File dir = new File(Utils.getDir(activity), directory);
-		dir.mkdirs();
-		File file = new File(dir, filename);
-
-		IOUtils.copyLarge(inputStream, new FileOutputStream(file),
+	@RequiresApi(api = Build.VERSION_CODES.O)
+	@NonNull
+	private void writeFile(Path filePath, InputStream inputStream) throws IOException {
+		Files.createDirectories(filePath.getParent());
+		IOUtils.copyLarge(inputStream, Files.newOutputStream(filePath),
 				new byte[COPY_BUFFER_SIZE]);
-		return file;
 	}
 
-	public File writeFileToUnencryptedDir(String filename, InputStream inputStream) throws IOException {
-		return writeFileToDir(filename, inputStream, Crypto.TEMP_DIR_DECRYPTED);
+	@RequiresApi(api = Build.VERSION_CODES.O)
+	public Path writeFileToUnencryptedDir(String filename, InputStream inputStream) throws IOException {
+		Path path = Paths.get(Utils.getDir(activity).toString(), Crypto.TEMP_DIR_DECRYPTED, filename);
+		writeFile(path, inputStream);
+		return path;
 	}
 
-	private File writeFileToEncryptedDir(String filename, InputStream inputStream) throws IOException {
-		return writeFileToDir(filename, inputStream, Crypto.TEMP_DIR_ENCRYPTED);
+	@RequiresApi(api = Build.VERSION_CODES.O)
+	private Path writeFileToEncryptedDir(String filename, InputStream inputStream) throws IOException {
+		Path path = Paths.get(Utils.getDir(activity).toString(), Crypto.TEMP_DIR_ENCRYPTED, filename);
+		writeFile(path, inputStream);
+		return path;
 	}
 
+	@RequiresApi(api = Build.VERSION_CODES.O)
 	Promise<Object, Exception, Void> saveBlob(final String name, final String base64blob) {
 		try {
-			File localFile = writeFileToUnencryptedDir(name, new ByteArrayInputStream(Utils.base64ToBytes(base64blob)));
-			return this.putToDownloadFolder(Utils.fileToUri(localFile));
+			Path localPath = writeFileToUnencryptedDir(name, new ByteArrayInputStream(Utils.base64ToBytes(base64blob)));
+			return this.putToDownloadFolder(localPath.toUri().toString());
 		} catch (IOException e) {
 			DeferredObject<Object, Exception, Void> result = new DeferredObject<>();
 			result.reject(e);
@@ -411,6 +420,7 @@ public class FileUtil {
 		}
 	}
 
+	@RequiresApi(api = Build.VERSION_CODES.O)
 	public JSONArray splitFile(String fileUri, int maxBlobSize) throws IOException, NoSuchAlgorithmException, JSONException {
 		Uri file = Uri.parse(fileUri);
 		long fileSize = Utils.getFileInfo(activity, file).size;
@@ -420,12 +430,12 @@ public class FileUtil {
 		for (int chunk = 0; chunk * maxBlobSize <= fileSize; chunk++) {
 			String tmpFilename = Integer.toHexString(file.hashCode()) + "." + chunk + ".blob";
 			BoundedInputStream chunkedInputStream = new BoundedInputStream(hashingInputStream, maxBlobSize);
-			File tmpFile = writeFileToEncryptedDir(tmpFilename, chunkedInputStream);
+			Path tmpPath = writeFileToEncryptedDir(tmpFilename, chunkedInputStream);
 			byte[] hash = hashingInputStream.hash(); // resets the hash
 
 			JSONObject blob = new JSONObject()
 					.put("blobId", bytesToBase64(Arrays.copyOf(hash, 6)))
-					.put("uri", Utils.fileToUri(tmpFile));
+					.put("uri", Utils.pathToUri(tmpPath));
 			blobs.add(blob);
 		}
 		return new JSONArray(blobs);
@@ -435,7 +445,8 @@ public class FileUtil {
 		InputStream inputStream = new FileInputStream(new File(Uri.parse(fileUri).getPath()));
 		HashingInputStream hashingInputStream = new HashingInputStream(MessageDigest.getInstance("SHA-256"), inputStream);
 		OutputStream os = new OutputStream() {
-			public void write(int b) {}
+			public void write(int b) {
+			}
 		};
 
 		IOUtils.copyLarge(hashingInputStream, os);
@@ -446,6 +457,6 @@ public class FileUtil {
 	public String getTempFileUri(String filename) throws IOException {
 		File dir = new File(Utils.getDir(activity), Crypto.TEMP_DIR_ENCRYPTED);
 		File file = new File(dir, filename);
-		return  file.getCanonicalPath();
+		return file.getCanonicalPath();
 	}
 }

@@ -7,10 +7,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.content.FileProvider;
 
 import org.jdeferred.Deferred;
@@ -25,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -372,6 +375,7 @@ public final class Native {
 		return true;
 	}
 
+	@RequiresApi(api = Build.VERSION_CODES.O)
 	private boolean shareText(String string, @Nullable String title) {
 		Intent sendIntent = new Intent(Intent.ACTION_SEND);
 		sendIntent.setType("text/plain");
@@ -388,7 +392,7 @@ public final class Native {
 		String imageName = "logo-solo-red.png";
 		try {
 			InputStream logoInputStream = activity.getAssets().open("tutanota/images/" + imageName);
-			File logoFile = this.files.writeFileToUnencryptedDir(imageName, logoInputStream);
+			File logoFile = this.files.writeFileToUnencryptedDir(imageName, logoInputStream).toFile();
 			Uri logoUri = FileProvider.getUriForFile(activity, BuildConfig.FILE_PROVIDER_AUTHORITY, logoFile);
 			ClipData thumbnail = ClipData.newUri(
 					activity.getContentResolver(),

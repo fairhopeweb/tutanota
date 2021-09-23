@@ -9,6 +9,7 @@ import android.provider.OpenableColumns;
 import android.util.Base64;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.RequiresApi;
 
 import org.apache.commons.io.IOUtils;
 import org.jdeferred.Deferred;
@@ -21,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -64,6 +66,11 @@ public class Utils {
 
 	public static String fileToUri(File file) {
 		return Uri.fromFile(file).toString();
+	}
+
+	@RequiresApi(api = Build.VERSION_CODES.O)
+	public static String pathToUri(Path path) {
+		return Uri.fromFile(path.toFile()).toString();
 	}
 
 	@SuppressLint("Range")
