@@ -187,9 +187,6 @@ export class FileFacade {
 				this._blobDownloaderNative(blobId, headers, body, server)
 		)
 
-		// TODO:
-		// make sure all suspensions have been handled
-
 		// Return first error code
 		const firstError = blobs.find(result => result.statusCode !== 200)
 		if (firstError) {
@@ -310,7 +307,7 @@ export class FileFacade {
 		})
 		const literalGetData = await encryptAndMapToLiteral(BlobDataGetTypeModel, getData, null)
 		const body = JSON.stringify(literalGetData)
-		const server = servers[0] // TODO: Use another server if download fails
+		const server = servers[0]
 
 		return blobDownloader(blobId, headers, body, server)
 	}
@@ -354,7 +351,7 @@ export class FileFacade {
 	}
 
 	// ↑↑↑ Download ↑↑↑
-	//////////////////////////////////////////////////
+	//-------------------------------------------------
 	// ↓↓↓ Upload ↓↓↓
 
 	async uploadFile(file: DataFile | FileReference, sessionKey: Aes128Key): Promise<Id> {
@@ -437,7 +434,6 @@ export class FileFacade {
 		data: T, size: number, sessionKey: Aes128Key, encrypter: FileEncryptor<T>, splitter: BlobSplitter<T>, uploader: BlobUploader<T>): Promise<Id> {
 		const encrypted = await encrypter(sessionKey, data)
 
-		// TODO: Watch for timeout of the access token when uploading many chunks
 		const {storageAccessToken, servers} = accessInfo
 		const headers = Object.assign({
 			storageAccessToken,
