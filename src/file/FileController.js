@@ -62,8 +62,6 @@ export class FileController {
 	downloadAll(tutanotaFiles: Array<TutanotaFile>): Promise<void> {
 		const showErr = (msg, name) => Dialog.error(() => lang.get(msg) + " " + name).then(() => null)
 		let downloadContent, save
-		const concurrency = {concurrency: 1}
-
 		if (isAndroidApp()) {
 			downloadContent = f => worker.fileFacade.downloadFileContentNative(f)
 			save = p => p.then(files => files.forEach(file =>
@@ -83,7 +81,7 @@ export class FileController {
 			tutanotaFile => downloadContent(tutanotaFile)
 				.catch(ofClass(CryptoError, () => showErr("corrupted_msg", tutanotaFile.name)))
 				.catch(ofClass(ConnectionError, () => showErr("couldNotAttachFile_msg", tutanotaFile.name))),
-			concurrency)
+			{concurrency: 1})
 			.then((results) => results.filter(Boolean)) // filter out failed files
 		// in apps, p is a  Promise<FileReference[]> that have location props.
 		// otherwise, it's a Promise<DataFile[]> and can be handled by zipDataFiles
